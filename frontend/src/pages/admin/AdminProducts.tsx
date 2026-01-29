@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
+import { resolveImageUrl } from '../../utils/resolveImage';
 import toast from 'react-hot-toast';
 import { Plus, Edit, Trash2, ArrowLeft, Upload } from 'lucide-react';
 
@@ -163,7 +164,7 @@ export default function AdminProducts() {
             <div key={product.id} className="bg-gray-900 rounded-lg overflow-hidden">
               {product.image && (
                 <img
-                  src={`http://localhost:3001${product.image}`}
+                  src={resolveImageUrl(product.image)}
                   alt={product.name}
                   className="w-full h-48 object-cover object-center"
                   loading="lazy"

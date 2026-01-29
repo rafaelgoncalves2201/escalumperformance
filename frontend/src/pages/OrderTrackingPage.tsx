@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../lib/api';
+import { resolveImageUrl } from '../utils/resolveImage';
 import { CheckCircle, Clock, XCircle, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -149,7 +150,7 @@ export default function OrderTrackingPage() {
               <div key={item.id} className="flex items-start gap-4">
                 {item.product.image && (
                   <img
-                    src={`http://localhost:3001${item.product.image}`}
+                    src={resolveImageUrl(item.product.image)}
                     alt={item.product.name}
                     className="w-16 h-16 rounded-lg object-cover object-center ring-2 ring-white/10"
                     loading="lazy"

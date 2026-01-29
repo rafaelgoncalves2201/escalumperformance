@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
+import { resolveImageUrl } from '../../utils/resolveImage';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Upload, Save, Trash2 } from 'lucide-react';
 
@@ -177,7 +178,7 @@ export default function AdminSettings() {
             <div className="flex items-center gap-6">
               {business?.logo && (
                 <img
-                  src={`http://localhost:3001${business.logo}`}
+                  src={resolveImageUrl(business.logo)}
                   alt="Logo"
                   className="w-24 h-24 rounded-lg object-cover object-center ring-2 ring-primary/50"
                   loading="eager"
@@ -332,7 +333,7 @@ export default function AdminSettings() {
                   <h3 className="font-semibold mb-2">Banner do Menu</h3>
                   {business?.menuBannerImage && (
                     <img
-                      src={`http://localhost:3001${business.menuBannerImage}`}
+                      src={resolveImageUrl(business.menuBannerImage)}
                       alt="Banner"
                       className="w-full h-32 rounded-lg object-cover mb-3"
                     />
@@ -351,7 +352,7 @@ export default function AdminSettings() {
                   {business?.menuWallpaperImage && (
                     <>
                       <img
-                        src={`http://localhost:3001${business.menuWallpaperImage}`}
+                        src={resolveImageUrl(business.menuWallpaperImage)}
                         alt="Wallpaper"
                         className="w-full h-32 rounded-lg object-cover object-center mb-3 ring-2 ring-white/10"
                         loading="lazy"

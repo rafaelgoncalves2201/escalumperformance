@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../lib/api';
-import { ShoppingCart, Plus, Minus, MapPin, Clock } from 'lucide-react';
+import { resolveImageUrl } from '../utils/resolveImage';
+import { ShoppingCart, Plus, Minus, MapPin, Clock, Home, Percent, User, ChevronDown, Search, Gift, HelpCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const CUSTOMER_STORAGE_KEY = (s: string) => `customer_${s}`;
 
 interface Product {
   id: string;
@@ -44,6 +47,53 @@ interface CartItem {
   addons: any[];
 }
 
+function ProductCard({
+  product,
+  primary,
+  addToCart,
+  resolveImageUrl,
+}: {
+  product: Product;
+  primary: string;
+  addToCart: (p: Product) => void;
+  resolveImageUrl: (url: string | null) => string;
+}) {
+  return (
+    <div className="bg-white rounded-2xl overflow-hidden shadow-md border border-gray-200 hover:shadow-lg transition-all duration-300">
+      {product.image && (
+        <div className="relative overflow-hidden aspect-[4/3] bg-gray-100">
+          <img
+            src={resolveImageUrl(product.image)}
+            alt={product.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      )}
+      <div className="p-4">
+        <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
+        {product.description && (
+          <p className="text-sm text-gray-500 mb-3 line-clamp-2">{product.description}</p>
+        )}
+        <div className="flex items-center justify-between">
+          <span className="text-lg font-bold text-green-600">
+            R$ {Number(product.price).toFixed(2).replace('.', ',')}
+          </span>
+          <button
+            type="button"
+            onClick={() => addToCart(product)}
+            className="p-2 rounded-xl text-white transition hover:opacity-90"
+            style={{ background: primary }}
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MenuPage() {
   const { slug } = useParams<{ slug: string }>();
   const [business, setBusiness] = useState<Business | null>(null);
@@ -66,6 +116,13 @@ export default function MenuPage() {
   });
   const [isCepLoading, setIsCepLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [customer, setCustomer] = useState<{ name: string; email: string; phone: string } | null>(null);
+  const [deliveryCalcCep, setDeliveryCalcCep] = useState('');
+  const [deliveryCalcResult, setDeliveryCalcResult] = useState<{ fee: number; estimatedMinutes: number; cep: string } | null>(null);
+  const [deliveryCalcLoading, setDeliveryCalcLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   const onlyDigits = (value: string) => value.replace(/\D/g, '');
 
@@ -132,11 +189,68 @@ export default function MenuPage() {
     loadMenu();
   }, [slug]);
 
+  useEffect(() => {
+    if (!slug) return;
+    try {
+      const raw = localStorage.getItem(CUSTOMER_STORAGE_KEY(slug));
+      if (raw) {
+        const data = JSON.parse(raw) as { name: string; email: string; phone: string };
+        setCustomer(data);
+        setCustomerData(prev => ({ ...prev, name: data.name, email: data.email, phone: data.phone }));
+      } else {
+        setCustomer(null);
+      }
+    } catch {
+      setCustomer(null);
+    }
+  }, [slug]);
+
   // Ajustar forma de pagamento ao trocar tipo: entrega não pode ser "pagar na retirada" e vice-versa
   useEffect(() => {
     if (orderType === 'DELIVERY' && paymentMethod === 'CASH_PICKUP') setPaymentMethod('ONLINE');
     if (orderType === 'PICKUP' && paymentMethod === 'CASH_DELIVERY') setPaymentMethod('ONLINE');
   }, [orderType]);
+
+  const saveCustomerLogin = (name: string, email: string, phone: string) => {
+    if (!slug) return;
+    const data = { name, email, phone };
+    localStorage.setItem(CUSTOMER_STORAGE_KEY(slug), JSON.stringify(data));
+    setCustomer(data);
+    setCustomerData(prev => ({ ...prev, name, email, phone }));
+    setShowLoginModal(false);
+    toast.success('Dados salvos! Seus dados serão preenchidos nos pedidos.');
+  };
+
+  const logoutCustomer = () => {
+    if (!slug) return;
+    localStorage.removeItem(CUSTOMER_STORAGE_KEY(slug));
+    setCustomer(null);
+    setCustomerData(prev => ({ ...prev, name: '', email: '', phone: '' }));
+    toast.success('Você saiu da sua conta.');
+  };
+
+  const calculateDelivery = async () => {
+    const cepDigits = onlyDigits(deliveryCalcCep);
+    if (cepDigits.length !== 8) {
+      toast.error('Informe um CEP válido (8 dígitos)');
+      return;
+    }
+    setDeliveryCalcLoading(true);
+    try {
+      const res = await api.get(`/menu/${slug}/calculate-delivery`, { params: { cep: cepDigits } });
+      setDeliveryCalcResult({
+        fee: res.data.fee,
+        estimatedMinutes: res.data.estimatedMinutes,
+        cep: res.data.cep || deliveryCalcCep,
+      });
+      toast.success('Entrega calculada!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erro ao calcular entrega');
+      setDeliveryCalcResult(null);
+    } finally {
+      setDeliveryCalcLoading(false);
+    }
+  };
 
   const loadMenu = async () => {
     try {
@@ -177,9 +291,27 @@ export default function MenuPage() {
 
   const getTotal = () => {
     const subtotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
-    const deliveryFee = orderType === 'DELIVERY' && business ? Number(business.deliveryFee) : 0;
+    let deliveryFee = 0;
+    if (orderType === 'DELIVERY' && business) {
+      deliveryFee = deliveryCalcResult != null ? deliveryCalcResult.fee : Number(business.deliveryFee);
+    }
     return subtotal + deliveryFee;
   };
+
+  const deliveryFeeDisplay = orderType === 'DELIVERY' && business
+    ? (deliveryCalcResult != null ? deliveryCalcResult.fee : Number(business.deliveryFee))
+    : 0;
+
+  const filteredCategories = useMemo(() => {
+    if (!searchQuery.trim()) return categories;
+    const q = searchQuery.toLowerCase().trim();
+    return categories.map(cat => ({
+      ...cat,
+      products: cat.products.filter(
+        p => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q)
+      ),
+    })).filter(cat => cat.products.length > 0);
+  }, [categories, searchQuery]);
 
   const handleCheckout = async () => {
     if (!business) return;
@@ -208,7 +340,7 @@ export default function MenuPage() {
 
       // Criar pedido (com forma de pagamento)
       const paymentMethodValue = orderType === 'DELIVERY' ? (paymentMethod === 'CASH_PICKUP' ? 'ONLINE' : paymentMethod) : (paymentMethod === 'CASH_DELIVERY' ? 'ONLINE' : paymentMethod);
-      const orderResponse = await api.post('/orders', {
+      const orderPayload: Record<string, unknown> = {
         type: orderType,
         paymentMethod: paymentMethodValue,
         customerName: customerData.name,
@@ -221,7 +353,11 @@ export default function MenuPage() {
           notes: item.notes,
           addons: item.addons,
         })),
-      }, {
+      };
+      if (orderType === 'DELIVERY' && deliveryCalcResult != null) {
+        orderPayload.deliveryFee = deliveryCalcResult.fee;
+      }
+      const orderResponse = await api.post('/orders', orderPayload, {
         params: { businessSlug: slug }
       });
 
@@ -267,8 +403,8 @@ export default function MenuPage() {
   const primary = business.menuPrimaryColor || '#1323FD';
   const bg = business.menuBackgroundColor || '#0a0a1a';
   const text = business.menuTextColor || '#FFFFFF';
-  const wallpaper = business.menuWallpaperImage ? `http://localhost:3001${business.menuWallpaperImage}` : null;
-  const banner = business.menuBannerImage ? `http://localhost:3001${business.menuBannerImage}` : null;
+  const wallpaper = business.menuWallpaperImage ? resolveImageUrl(business.menuWallpaperImage) : null;
+  const banner = business.menuBannerImage ? resolveImageUrl(business.menuBannerImage) : null;
 
   const backgroundStyle = wallpaper
     ? {
@@ -285,145 +421,190 @@ export default function MenuPage() {
       };
 
   return (
-    <div className="min-h-screen text-white" style={backgroundStyle}>
-      {/* Header com gradiente */}
+    <div className="min-h-screen bg-gray-100 text-gray-900" style={wallpaper ? { ...backgroundStyle, backgroundImage: backgroundStyle.backgroundImage } : undefined}>
+      {/* Header estilo Hora de Brookie */}
       <header
-        className="sticky top-0 z-40 shadow-xl border-b border-white/10"
-        style={{
-          background: `linear-gradient(135deg, ${primary} 0%, ${primary}dd 50%, #0E1BC7 100%)`,
-          boxShadow: '0 4px 24px rgba(19,35,253,0.35)',
-        }}
+        className="sticky top-0 z-40 shadow-lg text-white"
+        style={{ background: 'linear-gradient(135deg, #5c2d3e 0%, #4a2432 50%, #3d1e2a 100%)' }}
       >
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {business.logo && (
-                <img
-                  src={`http://localhost:3001${business.logo}`}
-                  alt={business.name}
-                  className="h-12 w-12 rounded-full object-cover ring-2 ring-white/30 shadow-lg"
-                  loading="eager"
-                  decoding="async"
-                />
-              )}
-              <div>
-                <h1 className="text-xl font-bold">{business.name}</h1>
-                {business.phone && <p className="text-sm text-gray-300">{business.phone}</p>}
-              </div>
-            </div>
-            <button
-              onClick={() => setShowCart(true)}
-              className="relative px-4 py-2 rounded-lg transition hover:bg-white/20"
-              style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
-            >
-              <ShoppingCart className="inline mr-2" size={20} />
-              Carrinho
+        <div className="container mx-auto px-4 py-3">
+          <nav className="flex items-center justify-between gap-4 flex-wrap">
+            <a href="#top" className="flex items-center gap-2 hover:opacity-90"><Home size={20} /><span>Início</span></a>
+            <a href="#destaques" className="flex items-center gap-2 hover:opacity-90"><Percent size={20} /><span>Promoções</span></a>
+            <button type="button" onClick={() => setShowCart(true)} className="relative flex items-center gap-2 hover:opacity-90">
+              <ShoppingCart size={20} /><span>Pedidos</span>
               {cart.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {cart.reduce((sum, item) => sum + item.quantity, 0)}
                 </span>
               )}
             </button>
-          </div>
+            {customer ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-white/90">Olá, {customer.name}</span>
+                <button type="button" onClick={logoutCustomer} className="text-sm underline hover:no-underline">Sair</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setShowLoginModal(true)} className="flex items-center gap-2 hover:opacity-90">
+                <User size={20} /><span>Entrar / Cadastrar</span>
+              </button>
+            )}
+          </nav>
         </div>
       </header>
 
       {/* Banner */}
-      {banner && (
-        <section className="container mx-auto px-4 pt-4">
-          <div className="rounded-2xl overflow-hidden shadow-2xl ring-2 ring-white/10">
-            <div className="relative">
-              <img
-                src={banner}
-                alt="Banner"
-                className="w-full h-36 md:h-52 object-cover object-center"
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute bottom-4 left-4">
-                <h2 className="text-xl md:text-2xl font-bold drop-shadow-lg">{business.name}</h2>
-                <p className="text-sm text-white/90">Menu personalizado</p>
+      <section id="top" className="w-full h-32 md:h-40 flex items-center justify-center" style={{ background: banner ? undefined : 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}>
+        {banner ? <img src={banner} alt="" className="w-full h-full object-cover" /> : <span className="text-white/80 text-lg font-semibold">{business.name}</span>}
+      </section>
+
+      {/* Info da loja */}
+      <section className="container mx-auto px-4 -mt-6 relative z-10">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4 md:p-6 flex flex-wrap items-start gap-4">
+          {business.logo && (
+            <div className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-amber-50 ring-2 ring-amber-200/50">
+              <img src={resolveImageUrl(business.logo)} alt={business.name} className="w-full h-full object-cover" loading="eager" decoding="async" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">{business.name}</h1>
+            <p className="text-amber-600 font-medium mt-1">Apenas agendamento</p>
+            <p className="text-amber-600/90 text-sm mt-0.5">Abrimos amanhã às 11h00</p>
+            {business.address && <p className="text-gray-500 text-sm mt-1">{business.address}</p>}
+            {business.phone && <p className="text-gray-500 text-sm">{business.phone}</p>}
+            <a href="#categorias" className="inline-block mt-2 text-blue-600 hover:underline text-sm font-medium">Mais informações</a>
+          </div>
+        </div>
+      </section>
+
+      {/* Main: conteúdo + sidebar */}
+      <div className="container mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
+        <main className="flex-1 min-w-0">
+          <div id="categorias" className="mb-4">
+            <button type="button" onClick={() => setCategoriesOpen(!categoriesOpen)} className="flex items-center justify-between w-full md:w-auto px-4 py-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:border-gray-300">
+              <span className="font-medium text-gray-700">Lista de categorias</span>
+              <ChevronDown className={`w-5 h-5 text-gray-500 transition ${categoriesOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {categoriesOpen && (
+              <div className="mt-2 p-3 bg-white rounded-xl border border-gray-200 shadow-sm space-y-1">
+                {categories.map(cat => (
+                  <a key={cat.id} href={`#cat-${cat.id}`} className="block py-2 px-3 rounded-lg hover:bg-gray-100 text-gray-700">{cat.name}</a>
+                ))}
               </div>
+            )}
+          </div>
+
+          {filteredCategories.length > 0 && (
+            <section id="destaques" className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Destaques</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredCategories[0].products.map(product => (
+                  <ProductCard key={product.id} product={product} primary={primary} addToCart={addToCart} resolveImageUrl={resolveImageUrl} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {filteredCategories.slice(1).map(category => (
+            <section key={category.id} id={`cat-${category.id}`} className="mb-10">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{category.name}</h2>
+              {category.description && <p className="text-gray-500 mb-4">{category.description}</p>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {category.products.map(product => (
+                  <ProductCard key={product.id} product={product} primary={primary} addToCart={addToCart} resolveImageUrl={resolveImageUrl} />
+                ))}
+              </div>
+            </section>
+          ))}
+
+          {filteredCategories.length === 0 && <p className="text-gray-500 py-8 text-center">Nenhum produto encontrado para &quot;{searchQuery}&quot;</p>}
+        </main>
+
+        <aside className="lg:w-80 flex-shrink-0 space-y-4">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input type="search" placeholder="Busque por um produto" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/50" />
             </div>
           </div>
-        </section>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-start gap-3">
+            <Gift className="w-8 h-8 text-rose-500 flex-shrink-0" />
+            <div>
+              <h3 className="font-semibold text-gray-900">Programa de fidelidade</h3>
+              <p className="text-sm text-gray-600 mt-1">A cada R$ 1,00 em compras você ganha 1 ponto que pode ser trocado por prêmios.</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <HelpCircle className="w-6 h-6 text-rose-500" />
+              <h3 className="font-semibold text-gray-900">Calcular taxa e tempo de entrega</h3>
+            </div>
+            <div className="space-y-2">
+              <input type="text" placeholder="CEP (8 dígitos)" value={deliveryCalcCep} onChange={(e) => setDeliveryCalcCep(e.target.value.replace(/\D/g, '').slice(0, 8))} className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/50" />
+              <button type="button" onClick={calculateDelivery} disabled={deliveryCalcLoading || onlyDigits(deliveryCalcCep).length !== 8} className="w-full py-2 rounded-lg font-medium text-white transition disabled:opacity-50" style={{ background: primary }}>
+                {deliveryCalcLoading ? 'Calculando...' : 'Calcular'}
+              </button>
+              {deliveryCalcResult && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm">
+                  <p className="font-medium text-gray-800">CEP {deliveryCalcResult.cep}</p>
+                  <p className="text-gray-600">Taxa: R$ {deliveryCalcResult.fee.toFixed(2).replace('.', ',')}</p>
+                  <p className="text-gray-600">Tempo estimado: {deliveryCalcResult.estimatedMinutes} min</p>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+            <button type="button" onClick={() => setShowCart(true)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-600 hover:border-rose-400 hover:text-rose-600 transition">
+              <ShoppingCart className="w-6 h-6" />
+              <span>{cart.length === 0 ? 'Sacola vazia' : `${cart.reduce((s, i) => s + i.quantity, 0)} item(ns)`}</span>
+            </button>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center gap-3">
+            <Percent className="w-6 h-6 text-rose-500" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-900">Que tal usar um cupom?</h3>
+              <p className="text-sm text-gray-500">2 disponíveis</p>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* Modal Entrar / Cadastrar */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowLoginModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-gray-900" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold mb-4">Entrar / Cadastrar</h2>
+            <p className="text-sm text-gray-500 mb-4">Salve seus dados para preencher automaticamente nos pedidos.</p>
+            <form onSubmit={(e) => { e.preventDefault(); const form = e.currentTarget; const name = (form.querySelector('[name="loginName"]') as HTMLInputElement)?.value; const email = (form.querySelector('[name="loginEmail"]') as HTMLInputElement)?.value; const phone = (form.querySelector('[name="loginPhone"]') as HTMLInputElement)?.value; if (name && phone) saveCustomerLogin(name, email || '', phone); }}>
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Nome *</label>
+                  <input name="loginName" type="text" required defaultValue={customer?.name} className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/50" placeholder="Seu nome" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input name="loginEmail" type="email" defaultValue={customer?.email} className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/50" placeholder="seu@email.com" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Telefone *</label>
+                  <input name="loginPhone" type="tel" required defaultValue={customer?.phone} className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/50" placeholder="(11) 99999-9999" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button type="submit" className="flex-1 py-2.5 rounded-lg font-medium text-white transition" style={{ background: primary }}>Salvar</button>
+                <button type="button" onClick={() => setShowLoginModal(false)} className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
-      {/* Menu */}
-      <main className="container mx-auto px-4 py-8 pb-28">
-        {categories.map(category => (
-          <section key={category.id} className="mb-12">
-            <h2 className="text-2xl font-bold mb-6 drop-shadow-sm" style={{ color: primary }}>
-              {category.name}
-            </h2>
-            {category.description && (
-              <p className="text-gray-300/90 mb-6">{category.description}</p>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {category.products.map(product => (
-                <div
-                  key={product.id}
-                  className="rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/10 bg-gradient-to-b from-gray-900/95 to-gray-900/85 backdrop-blur-sm"
-                  style={{ boxShadow: '0 8px 32px rgba(19,35,253,0.15)' }}
-                >
-                  {product.image && (
-                    <div className="relative overflow-hidden">
-                      <img
-                        src={`http://localhost:3001${product.image}`}
-                        alt={product.name}
-                        className="w-full h-52 object-cover object-center"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-                    </div>
-                  )}
-                  <div className="p-5">
-                    <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
-                    {product.description && (
-                      <p className="text-gray-400 text-sm mb-4 line-clamp-2">{product.description}</p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold" style={{ color: primary }}>
-                        R$ {Number(product.price).toFixed(2).replace('.', ',')}
-                      </span>
-                      <button
-                        onClick={() => addToCart(product)}
-                        className="px-4 py-2 rounded-xl transition hover:opacity-90 shadow-lg"
-                        style={{
-                          background: `linear-gradient(135deg, ${primary} 0%, #0E1BC7 100%)`,
-                          boxShadow: `0 4px 14px ${primary}66`,
-                        }}
-                      >
-                        <Plus size={20} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
-      </main>
-
       {/* Rodapé com logo da empresa que desenvolveu o sistema */}
-      <footer className="py-6 border-t border-white/10 bg-black/30 backdrop-blur-sm">
+      <footer className="py-6 border-t border-gray-200 bg-white/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 flex flex-col items-center gap-3">
-          <p className="text-sm text-white/70">Desenvolvido por</p>
-          <a
-            href="/"
-            className="flex items-center gap-2 opacity-90 hover:opacity-100 transition"
-            aria-label="Logo da empresa desenvolvedora"
-          >
-            <img
-              src="/logo-desenvolvedor.png"
-              alt="Logo da empresa que desenvolveu o sistema"
-              className="h-10 w-auto max-w-[140px] object-contain object-center"
-              loading="lazy"
-              decoding="async"
-            />
+          <p className="text-sm text-gray-500">Desenvolvido por</p>
+          <a href="/" className="flex items-center gap-2 opacity-90 hover:opacity-100 transition" aria-label="Logo da empresa desenvolvedora">
+            <img src="/logo-desenvolvedor.png" alt="Logo da empresa que desenvolveu o sistema" className="h-10 w-auto max-w-[140px] object-contain object-center" loading="lazy" decoding="async" />
           </a>
         </div>
       </footer>
@@ -684,10 +865,10 @@ export default function MenuPage() {
                       <span>Subtotal</span>
                       <span>R$ {cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0).toFixed(2).replace('.', ',')}</span>
                     </div>
-                    {orderType === 'DELIVERY' && business.deliveryFee > 0 && (
+                    {orderType === 'DELIVERY' && deliveryFeeDisplay > 0 && (
                       <div className="flex justify-between mb-2 text-gray-400">
                         <span>Taxa de entrega</span>
-                        <span>R$ {Number(business.deliveryFee).toFixed(2).replace('.', ',')}</span>
+                        <span>R$ {deliveryFeeDisplay.toFixed(2).replace('.', ',')}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-xl font-bold mt-4">

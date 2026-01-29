@@ -130,14 +130,17 @@ O sistema usa JWT para autenticação. O token é armazenado no localStorage e e
 - Arquitetura preparada para escalar como SaaS
 - Webhooks do Mercado Pago para confirmação automática de pagamentos
 
-## 🚀 Deploy
+## 🚀 Deploy (Vercel + Render)
 
-Para produção:
-1. Configure variáveis de ambiente
-2. Execute `npm run build` em ambos frontend e backend
-3. Configure um servidor web (nginx) para servir o frontend
-4. Configure PM2 ou similar para o backend
-5. Configure SSL para webhooks do Mercado Pago
+### Backend na Render
+- Faça deploy do `backend/` na Render (Web Service, Node).
+- Configure `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL` (URL do frontend na Vercel) e `BACKEND_URL` (URL do serviço na Render).
+
+### Frontend na Vercel
+- Faça deploy do `frontend/` na Vercel (root: `frontend`).
+- **Imagens e logos:** para as logos e imagens do backend carregarem no frontend, defina na Vercel a variável de ambiente:
+  - **`VITE_API_URL`** = URL do backend na Render (ex: `https://seu-backend.onrender.com`).
+- Sem `VITE_API_URL`, o frontend usa `http://localhost:3001` e as imagens quebram em produção.
 
 ## 📄 Licença
 

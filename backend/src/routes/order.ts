@@ -14,6 +14,7 @@ const createOrderSchema = z.object({
   customerPhone: z.string().min(1),
   customerEmail: z.string().email().optional(),
   deliveryAddress: z.string().optional(),
+  deliveryFee: z.number().min(0).optional(), // taxa calculada pelo frontend (calculador de entrega)
   items: z.array(z.object({
     productId: z.string().uuid(),
     quantity: z.number().int().min(1),
@@ -92,7 +93,9 @@ router.post('/', async (req, res) => {
       };
     });
 
-    const deliveryFee = data.type === 'DELIVERY' ? Number(business.deliveryFee) : 0;
+    const deliveryFee = data.type === 'DELIVERY'
+      ? (typeof data.deliveryFee === 'number' ? data.deliveryFee : Number(business.deliveryFee))
+      : 0;
     const total = subtotal + deliveryFee;
 
     // Obter próximo número de pedido
