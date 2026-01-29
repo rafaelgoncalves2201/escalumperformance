@@ -28,6 +28,8 @@ const createOrderSchema = z.object({
   },
   { message: 'Forma de pagamento inválida para o tipo de pedido', path: ['paymentMethod'] }
 );
+type OrderItemInput = z.infer<typeof createOrderSchema>['items'][number];
+
 
 // Criar pedido (público - do menu)
 router.post('/', async (req, res) => {
@@ -73,7 +75,8 @@ router.post('/', async (req, res) => {
     }
 
     let subtotal = 0;
-    const orderItems = data.items.map(item => {
+    const orderItems = data.items.map((item: OrderItemInput) => {
+
       const product = products.find(p => p.id === item.productId);
       if (!product) throw new Error('Produto não encontrado');
 
