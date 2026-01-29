@@ -13,6 +13,7 @@ import { router as productRoutes } from './routes/product.js';
 import { router as orderRoutes } from './routes/order.js';
 import { router as menuRoutes } from './routes/menu.js';
 import { router as paymentRoutes } from './routes/payment.js';
+import { router as promotionRoutes } from './routes/promotion.js';
 import { setupWebSocket } from './websocket.js';
 
 dotenv.config();
@@ -50,6 +51,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/promotions', promotionRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

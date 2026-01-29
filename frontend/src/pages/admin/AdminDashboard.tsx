@@ -108,6 +108,12 @@ export default function AdminDashboard() {
             >
               Produtos
             </Link>
+            <Link
+              to="/admin/promotions"
+              className="px-6 py-4 border-b-2 border-transparent hover:border-gray-700 transition"
+            >
+              Promoções
+            </Link>
           </div>
         </div>
       </nav>

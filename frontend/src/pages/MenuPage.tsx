@@ -59,7 +59,7 @@ function ProductCard({
   resolveImageUrl: (url: string | null) => string;
 }) {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-md border border-gray-200 hover:shadow-lg transition-all duration-300">
+    <div className="bg-white rounded-xl sm:rounded-2xl overflow-hidden shadow-md border border-gray-200 hover:shadow-lg transition-all duration-300">
       {product.image && (
         <div className="relative overflow-hidden aspect-[4/3] bg-gray-100">
           <img
@@ -71,19 +71,19 @@ function ProductCard({
           />
         </div>
       )}
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
+      <div className="p-3 sm:p-4">
+        <h3 className="font-semibold text-gray-900 mb-1 text-sm sm:text-base line-clamp-2">{product.name}</h3>
         {product.description && (
-          <p className="text-sm text-gray-500 mb-3 line-clamp-2">{product.description}</p>
+          <p className="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3 line-clamp-2">{product.description}</p>
         )}
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-green-600">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-base sm:text-lg font-bold text-green-600">
             R$ {Number(product.price).toFixed(2).replace('.', ',')}
           </span>
           <button
             type="button"
             onClick={() => addToCart(product)}
-            className="p-2 rounded-xl text-white transition hover:opacity-90"
+            className="p-2 rounded-xl text-white transition hover:opacity-90 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 active:opacity-95"
             style={{ background: primary }}
           >
             <Plus size={20} />
@@ -119,7 +119,7 @@ export default function MenuPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [customer, setCustomer] = useState<{ name: string; email: string; phone: string } | null>(null);
   const [deliveryCalcCep, setDeliveryCalcCep] = useState('');
-  const [deliveryCalcResult, setDeliveryCalcResult] = useState<{ fee: number; estimatedMinutes: number; cep: string } | null>(null);
+  const [deliveryCalcResult, setDeliveryCalcResult] = useState<{ fee: number; estimatedMinutes: number; cep: string; distanceKm?: number } | null>(null);
   const [deliveryCalcLoading, setDeliveryCalcLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoriesOpen, setCategoriesOpen] = useState(false);
@@ -242,6 +242,7 @@ export default function MenuPage() {
         fee: res.data.fee,
         estimatedMinutes: res.data.estimatedMinutes,
         cep: res.data.cep || deliveryCalcCep,
+        distanceKm: res.data.distanceKm,
       });
       toast.success('Entrega calculada!');
     } catch (err: any) {
@@ -421,83 +422,89 @@ export default function MenuPage() {
       };
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-900" style={wallpaper ? { ...backgroundStyle, backgroundImage: backgroundStyle.backgroundImage } : undefined}>
-      {/* Header estilo Hora de Brookie */}
+    <div className="min-h-screen bg-gray-100 pb-6 sm:pb-0" style={{ color: text, ...(wallpaper ? { ...backgroundStyle, backgroundImage: backgroundStyle.backgroundImage } : { background: bg }) }}>
+      {/* Header: cores do negócio - responsivo */}
       <header
         className="sticky top-0 z-40 shadow-lg text-white"
-        style={{ background: 'linear-gradient(135deg, #5c2d3e 0%, #4a2432 50%, #3d1e2a 100%)' }}
+        style={{ background: `linear-gradient(135deg, ${primary} 0%, ${primary}dd 50%, ${primary}99 100%)` }}
       >
-        <div className="container mx-auto px-4 py-3">
-          <nav className="flex items-center justify-between gap-4 flex-wrap">
-            <a href="#top" className="flex items-center gap-2 hover:opacity-90"><Home size={20} /><span>Início</span></a>
-            <a href="#destaques" className="flex items-center gap-2 hover:opacity-90"><Percent size={20} /><span>Promoções</span></a>
-            <button type="button" onClick={() => setShowCart(true)} className="relative flex items-center gap-2 hover:opacity-90">
-              <ShoppingCart size={20} /><span>Pedidos</span>
+        <div className="container mx-auto px-3 sm:px-4 py-2.5 sm:py-3">
+          <nav className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap min-h-[44px]">
+            <a href="#top" className="flex items-center gap-1.5 sm:gap-2 py-2 px-1 hover:opacity-90 min-w-[44px] min-h-[44px] justify-center sm:justify-start"><Home size={22} className="flex-shrink-0" /><span className="text-sm sm:text-base hidden sm:inline">Início</span></a>
+            <a href="#destaques" className="flex items-center gap-1.5 sm:gap-2 py-2 px-1 hover:opacity-90 min-w-[44px] min-h-[44px] justify-center sm:justify-start"><Percent size={22} className="flex-shrink-0" /><span className="text-sm sm:text-base hidden sm:inline">Promoções</span></a>
+            <button type="button" onClick={() => setShowCart(true)} className="relative flex items-center gap-1.5 sm:gap-2 py-2 px-1 hover:opacity-90 min-w-[44px] min-h-[44px] justify-center sm:justify-start">
+              <ShoppingCart size={22} className="flex-shrink-0" />
+              <span className="text-sm sm:text-base hidden sm:inline">Pedidos</span>
               {cart.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute top-0 right-0 sm:-top-2 sm:-right-2 text-white text-xs rounded-full h-5 w-5 min-w-[20px] flex items-center justify-center" style={{ background: primary }}>
                   {cart.reduce((sum, item) => sum + item.quantity, 0)}
                 </span>
               )}
             </button>
             {customer ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-white/90">Olá, {customer.name}</span>
-                <button type="button" onClick={logoutCustomer} className="text-sm underline hover:no-underline">Sair</button>
+              <div className="flex items-center gap-1 sm:gap-2 py-2">
+                <span className="text-xs sm:text-sm text-white/90 truncate max-w-[100px] sm:max-w-none">Olá, {customer.name}</span>
+                <button type="button" onClick={logoutCustomer} className="text-xs sm:text-sm underline hover:no-underline py-1 min-h-[44px] flex items-center">Sair</button>
               </div>
             ) : (
-              <button type="button" onClick={() => setShowLoginModal(true)} className="flex items-center gap-2 hover:opacity-90">
-                <User size={20} /><span>Entrar / Cadastrar</span>
+              <button type="button" onClick={() => setShowLoginModal(true)} className="flex items-center gap-1.5 sm:gap-2 py-2 px-1 hover:opacity-90 min-w-[44px] min-h-[44px] justify-center sm:justify-start">
+                <User size={22} className="flex-shrink-0" />
+                <span className="text-sm sm:text-base hidden sm:inline">Entrar</span>
               </button>
             )}
           </nav>
         </div>
       </header>
 
-      {/* Banner */}
-      <section id="top" className="w-full h-32 md:h-40 flex items-center justify-center" style={{ background: banner ? undefined : 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' }}>
-        {banner ? <img src={banner} alt="" className="w-full h-full object-cover" /> : <span className="text-white/80 text-lg font-semibold">{business.name}</span>}
+      {/* Banner maior - responsivo (admin configura a imagem, cliente vê maior) */}
+      <section id="top" className="w-full h-[200px] sm:h-[260px] md:h-[320px] lg:h-[380px] flex items-center justify-center overflow-hidden shrink-0" style={{ background: banner ? undefined : primary }}>
+        {banner ? (
+          <img src={banner} alt="" className="w-full h-full object-cover object-center" />
+        ) : (
+          <span className="text-white/90 text-base sm:text-lg md:text-xl font-semibold px-4 text-center">{business.name}</span>
+        )}
       </section>
 
-      {/* Info da loja */}
-      <section className="container mx-auto px-4 -mt-6 relative z-10">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4 md:p-6 flex flex-wrap items-start gap-4">
+      {/* Info da loja - responsivo */}
+      <section className="container mx-auto px-3 sm:px-4 -mt-4 sm:-mt-6 relative z-10">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 p-3 sm:p-4 md:p-6 flex flex-wrap items-start gap-3 sm:gap-4">
           {business.logo && (
-            <div className="flex-shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-amber-50 ring-2 ring-amber-200/50">
+            <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg sm:rounded-xl overflow-hidden bg-amber-50 ring-2 ring-amber-200/50">
               <img src={resolveImageUrl(business.logo)} alt={business.name} className="w-full h-full object-cover" loading="eager" decoding="async" />
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">{business.name}</h1>
-            <p className="text-amber-600 font-medium mt-1">Apenas agendamento</p>
-            <p className="text-amber-600/90 text-sm mt-0.5">Abrimos amanhã às 11h00</p>
-            {business.address && <p className="text-gray-500 text-sm mt-1">{business.address}</p>}
-            {business.phone && <p className="text-gray-500 text-sm">{business.phone}</p>}
-            <a href="#categorias" className="inline-block mt-2 text-blue-600 hover:underline text-sm font-medium">Mais informações</a>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold break-words" style={{ color: primary }}>{business.name}</h1>
+            <p className="font-medium mt-0.5 sm:mt-1 text-sm sm:text-base" style={{ color: primary }}>Apenas agendamento</p>
+            <p className="text-xs sm:text-sm mt-0.5 opacity-90" style={{ color: primary }}>Abrimos amanhã às 11h00</p>
+            {business.address && <p className="text-gray-500 text-xs sm:text-sm mt-1 break-words">{business.address}</p>}
+            {business.phone && <p className="text-gray-500 text-xs sm:text-sm">{business.phone}</p>}
+            <a href="#categorias" className="inline-block mt-2 text-xs sm:text-sm font-medium hover:underline min-h-[44px] flex items-center" style={{ color: primary }}>Mais informações</a>
           </div>
         </div>
       </section>
 
-      {/* Main: conteúdo + sidebar */}
-      <div className="container mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
-        <main className="flex-1 min-w-0">
-          <div id="categorias" className="mb-4">
-            <button type="button" onClick={() => setCategoriesOpen(!categoriesOpen)} className="flex items-center justify-between w-full md:w-auto px-4 py-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:border-gray-300">
-              <span className="font-medium text-gray-700">Lista de categorias</span>
-              <ChevronDown className={`w-5 h-5 text-gray-500 transition ${categoriesOpen ? 'rotate-180' : ''}`} />
+      {/* Main: conteúdo + sidebar - responsivo */}
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 flex flex-col lg:flex-row gap-4 sm:gap-6">
+        <main className="flex-1 min-w-0 w-full">
+          <div id="categorias" className="mb-3 sm:mb-4">
+            <button type="button" onClick={() => setCategoriesOpen(!categoriesOpen)} className="flex items-center justify-between w-full px-3 sm:px-4 py-3 min-h-[48px] bg-white rounded-xl border shadow-sm hover:opacity-90 transition active:opacity-95" style={{ borderColor: primary + '40' }}>
+              <span className="font-medium text-sm sm:text-base" style={{ color: primary }}>Lista de categorias</span>
+              <ChevronDown className={`w-5 h-5 flex-shrink-0 transition ${categoriesOpen ? 'rotate-180' : ''}`} style={{ color: primary }} />
             </button>
             {categoriesOpen && (
-              <div className="mt-2 p-3 bg-white rounded-xl border border-gray-200 shadow-sm space-y-1">
+              <div className="mt-2 p-2 sm:p-3 bg-white rounded-xl border border-gray-200 shadow-sm space-y-0.5">
                 {categories.map(cat => (
-                  <a key={cat.id} href={`#cat-${cat.id}`} className="block py-2 px-3 rounded-lg hover:bg-gray-100 text-gray-700">{cat.name}</a>
+                  <a key={cat.id} href={`#cat-${cat.id}`} className="block py-2.5 px-3 rounded-lg hover:bg-gray-100 text-gray-700 text-sm sm:text-base min-h-[44px] flex items-center">{cat.name}</a>
                 ))}
               </div>
             )}
           </div>
 
           {filteredCategories.length > 0 && (
-            <section id="destaques" className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Destaques</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <section id="destaques" className="mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4" style={{ color: primary }}>Destaques</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {filteredCategories[0].products.map(product => (
                   <ProductCard key={product.id} product={product} primary={primary} addToCart={addToCart} resolveImageUrl={resolveImageUrl} />
                 ))}
@@ -506,10 +513,10 @@ export default function MenuPage() {
           )}
 
           {filteredCategories.slice(1).map(category => (
-            <section key={category.id} id={`cat-${category.id}`} className="mb-10">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{category.name}</h2>
-              {category.description && <p className="text-gray-500 mb-4">{category.description}</p>}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <section key={category.id} id={`cat-${category.id}`} className="mb-8 sm:mb-10">
+              <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4" style={{ color: primary }}>{category.name}</h2>
+              {category.description && <p className="text-gray-500 text-sm sm:text-base mb-3 sm:mb-4">{category.description}</p>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {category.products.map(product => (
                   <ProductCard key={product.id} product={product} primary={primary} addToCart={addToCart} resolveImageUrl={resolveImageUrl} />
                 ))}
@@ -517,63 +524,64 @@ export default function MenuPage() {
             </section>
           ))}
 
-          {filteredCategories.length === 0 && <p className="text-gray-500 py-8 text-center">Nenhum produto encontrado para &quot;{searchQuery}&quot;</p>}
+          {filteredCategories.length === 0 && <p className="text-gray-500 py-6 sm:py-8 text-center text-sm sm:text-base">Nenhum produto encontrado para &quot;{searchQuery}&quot;</p>}
         </main>
 
-        <aside className="lg:w-80 flex-shrink-0 space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+        <aside className="w-full lg:w-80 flex-shrink-0 space-y-3 sm:space-y-4">
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input type="search" placeholder="Busque por um produto" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/50" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 opacity-70 pointer-events-none" style={{ color: primary }} />
+              <input type="search" placeholder="Busque por um produto" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 sm:py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 text-base min-h-[48px]" style={{ ['--tw-ring-color' as string]: primary } as React.CSSProperties} />
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-start gap-3">
-            <Gift className="w-8 h-8 text-rose-500 flex-shrink-0" />
-            <div>
-              <h3 className="font-semibold text-gray-900">Programa de fidelidade</h3>
-              <p className="text-sm text-gray-600 mt-1">A cada R$ 1,00 em compras você ganha 1 ponto que pode ser trocado por prêmios.</p>
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+            <Gift className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 mt-0.5" style={{ color: primary }} />
+            <div className="min-w-0">
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Programa de fidelidade</h3>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">A cada R$ 1,00 em compras você ganha 1 ponto que pode ser trocado por prêmios.</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <HelpCircle className="w-6 h-6 text-rose-500" />
-              <h3 className="font-semibold text-gray-900">Calcular taxa e tempo de entrega</h3>
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+              <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" style={{ color: primary }} />
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Calcular taxa e tempo de entrega</h3>
             </div>
             <div className="space-y-2">
-              <input type="text" placeholder="CEP (8 dígitos)" value={deliveryCalcCep} onChange={(e) => setDeliveryCalcCep(e.target.value.replace(/\D/g, '').slice(0, 8))} className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/50" />
-              <button type="button" onClick={calculateDelivery} disabled={deliveryCalcLoading || onlyDigits(deliveryCalcCep).length !== 8} className="w-full py-2 rounded-lg font-medium text-white transition disabled:opacity-50" style={{ background: primary }}>
+              <input type="text" inputMode="numeric" placeholder="CEP (8 dígitos)" value={deliveryCalcCep} onChange={(e) => setDeliveryCalcCep(e.target.value.replace(/\D/g, '').slice(0, 8))} className="w-full px-3 sm:px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 min-h-[44px] text-base" style={{ ['--tw-ring-color' as string]: primary } as React.CSSProperties} />
+              <button type="button" onClick={calculateDelivery} disabled={deliveryCalcLoading || onlyDigits(deliveryCalcCep).length !== 8} className="w-full py-2.5 rounded-lg font-medium text-white transition disabled:opacity-50 min-h-[44px]" style={{ background: primary }}>
                 {deliveryCalcLoading ? 'Calculando...' : 'Calcular'}
               </button>
               {deliveryCalcResult && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm">
+                <div className="mt-3 p-2.5 sm:p-3 bg-gray-50 rounded-lg text-xs sm:text-sm">
                   <p className="font-medium text-gray-800">CEP {deliveryCalcResult.cep}</p>
+                  {deliveryCalcResult.distanceKm != null && <p className="text-gray-600">Distância: {deliveryCalcResult.distanceKm} km</p>}
                   <p className="text-gray-600">Taxa: R$ {deliveryCalcResult.fee.toFixed(2).replace('.', ',')}</p>
                   <p className="text-gray-600">Tempo estimado: {deliveryCalcResult.estimatedMinutes} min</p>
                 </div>
               )}
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-            <button type="button" onClick={() => setShowCart(true)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-600 hover:border-rose-400 hover:text-rose-600 transition">
-              <ShoppingCart className="w-6 h-6" />
-              <span>{cart.length === 0 ? 'Sacola vazia' : `${cart.reduce((s, i) => s + i.quantity, 0)} item(ns)`}</span>
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-4">
+            <button type="button" onClick={() => setShowCart(true)} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed text-gray-600 hover:opacity-90 transition min-h-[48px] active:opacity-95" style={{ borderColor: primary + '60' }}>
+              <ShoppingCart className="w-6 h-6 flex-shrink-0" style={{ color: primary }} />
+              <span className="text-sm sm:text-base">{cart.length === 0 ? 'Sacola vazia' : `${cart.reduce((s, i) => s + i.quantity, 0)} item(ns)`}</span>
             </button>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center gap-3">
-            <Percent className="w-6 h-6 text-rose-500" />
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900">Que tal usar um cupom?</h3>
-              <p className="text-sm text-gray-500">2 disponíveis</p>
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+            <Percent className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" style={{ color: primary }} />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Que tal usar um cupom?</h3>
+              <p className="text-xs sm:text-sm text-gray-500">2 disponíveis</p>
             </div>
           </div>
         </aside>
       </div>
 
-      {/* Modal Entrar / Cadastrar */}
+      {/* Modal Entrar / Cadastrar - responsivo */}
       {showLoginModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowLoginModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-gray-900" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold mb-4">Entrar / Cadastrar</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" onClick={() => setShowLoginModal(false)}>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 text-gray-900 my-auto" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Entrar / Cadastrar</h2>
             <p className="text-sm text-gray-500 mb-4">Salve seus dados para preencher automaticamente nos pedidos.</p>
             <form onSubmit={(e) => { e.preventDefault(); const form = e.currentTarget; const name = (form.querySelector('[name="loginName"]') as HTMLInputElement)?.value; const email = (form.querySelector('[name="loginEmail"]') as HTMLInputElement)?.value; const phone = (form.querySelector('[name="loginPhone"]') as HTMLInputElement)?.value; if (name && phone) saveCustomerLogin(name, email || '', phone); }}>
               <div className="space-y-3 mb-4">
@@ -590,18 +598,18 @@ export default function MenuPage() {
                   <input name="loginPhone" type="tel" required defaultValue={customer?.phone} className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/50" placeholder="(11) 99999-9999" />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button type="submit" className="flex-1 py-2.5 rounded-lg font-medium text-white transition" style={{ background: primary }}>Salvar</button>
-                <button type="button" onClick={() => setShowLoginModal(false)} className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancelar</button>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="flex-1 py-2.5 rounded-lg font-medium text-white transition min-h-[44px]" style={{ background: primary }}>Salvar</button>
+                <button type="button" onClick={() => setShowLoginModal(false)} className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 min-h-[44px]">Cancelar</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Rodapé com logo da empresa que desenvolveu o sistema */}
-      <footer className="py-6 border-t border-gray-200 bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 flex flex-col items-center gap-3">
+      {/* Rodapé - responsivo */}
+      <footer className="py-4 sm:py-6 border-t border-gray-200 bg-white/80 backdrop-blur-sm px-3 sm:px-4" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="container mx-auto flex flex-col items-center gap-2 sm:gap-3">
           <p className="text-sm text-gray-500">Desenvolvido por</p>
           <a href="/" className="flex items-center gap-2 opacity-90 hover:opacity-100 transition" aria-label="Logo da empresa desenvolvedora">
             <img src="/logo-desenvolvedor.png" alt="Logo da empresa que desenvolveu o sistema" className="h-10 w-auto max-w-[140px] object-contain object-center" loading="lazy" decoding="async" />
@@ -609,14 +617,14 @@ export default function MenuPage() {
         </div>
       </footer>
 
-      {/* Cart Sidebar */}
+      {/* Cart Sidebar - full screen no mobile, responsivo */}
       {showCart && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowCart(false)}>
-          <div className="absolute right-0 top-0 h-full w-full md:w-96 bg-gradient-to-b from-gray-900 to-gray-950 shadow-2xl border-l border-white/10 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Carrinho</h2>
-                <button onClick={() => setShowCart(false)} className="text-gray-400 hover:text-white">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 safe-area-padding" onClick={() => setShowCart(false)}>
+          <div className="absolute right-0 top-0 h-full w-full max-w-full sm:max-w-md md:w-96 bg-gradient-to-b from-gray-900 to-gray-950 shadow-2xl border-l border-white/10 overflow-y-auto overflow-x-hidden" onClick={(e) => e.stopPropagation()} style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
+            <div className="p-4 sm:p-6 pb-8 sm:pb-6" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}>
+              <div className="flex items-center justify-between mb-4 sm:mb-6 min-h-[44px]">
+                <h2 className="text-xl sm:text-2xl font-bold">Carrinho</h2>
+                <button type="button" onClick={() => setShowCart(false)} className="p-2 -m-2 text-gray-400 hover:text-white min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-white/10">
                   ✕
                 </button>
               </div>

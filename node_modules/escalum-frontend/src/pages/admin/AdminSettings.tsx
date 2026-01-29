@@ -22,6 +22,8 @@ interface Business {
   deliveryEnabled: boolean;
   pickupEnabled: boolean;
   deliveryFee: number;
+  businessCep: string | null;
+  deliveryFeePerKm: number | null;
   avgPrepTime: number;
   mercadoPagoToken: string | null;
 }
@@ -38,6 +40,8 @@ export default function AdminSettings() {
     deliveryEnabled: true,
     pickupEnabled: true,
     deliveryFee: '',
+    businessCep: '',
+    deliveryFeePerKm: '',
     avgPrepTime: '',
     mercadoPagoToken: '',
     menuPrimaryColor: '#1323FD',
@@ -62,6 +66,8 @@ export default function AdminSettings() {
         deliveryEnabled: data.deliveryEnabled,
         pickupEnabled: data.pickupEnabled,
         deliveryFee: data.deliveryFee?.toString() || '',
+        businessCep: data.businessCep || '',
+        deliveryFeePerKm: data.deliveryFeePerKm != null ? String(data.deliveryFeePerKm) : '',
         avgPrepTime: data.avgPrepTime?.toString() || '',
         mercadoPagoToken: data.mercadoPagoToken || '',
         menuPrimaryColor: data.menuPrimaryColor || '#1323FD',
@@ -82,6 +88,8 @@ export default function AdminSettings() {
       await api.put('/business', {
         ...formData,
         deliveryFee: parseFloat(formData.deliveryFee) || 0,
+        businessCep: formData.businessCep.replace(/\D/g, '').slice(0, 8) || null,
+        deliveryFeePerKm: formData.deliveryFeePerKm !== '' ? parseFloat(formData.deliveryFeePerKm) : null,
         avgPrepTime: parseInt(formData.avgPrepTime) || 30,
       });
       toast.success('Configurações salvas!');
@@ -224,13 +232,25 @@ export default function AdminSettings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Endereço</label>
+                <label className="block text-sm font-medium mb-2">Endereço completo</label>
                 <input
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Rua, número, bairro, cidade - para exibir no menu"
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">CEP do estabelecimento</label>
+                <input
+                  type="text"
+                  value={formData.businessCep}
+                  onChange={(e) => setFormData({ ...formData, businessCep: e.target.value.replace(/\D/g, '').slice(0, 8) })}
+                  placeholder="8 dígitos (para cálculo de taxa por km)"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
+                />
+                <p className="text-xs text-gray-400 mt-1">Preencha se quiser que a taxa de entrega seja calculada pela distância (km).</p>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -270,7 +290,7 @@ export default function AdminSettings() {
                 <label htmlFor="pickupEnabled" className="text-sm">Habilitar Retirada</label>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Taxa de Entrega (R$)</label>
+                <label className="block text-sm font-medium mb-2">Taxa fixa de entrega (R$)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -279,6 +299,20 @@ export default function AdminSettings() {
                   onChange={(e) => setFormData({ ...formData, deliveryFee: e.target.value })}
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
                 />
+                <p className="text-xs text-gray-400 mt-1">Usada quando CEP + valor por km não estão preenchidos.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Valor por km (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.deliveryFeePerKm}
+                  onChange={(e) => setFormData({ ...formData, deliveryFeePerKm: e.target.value })}
+                  placeholder="Ex: 2,50"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
+                />
+                <p className="text-xs text-gray-400 mt-1">Se CEP do estabelecimento estiver preenchido, a taxa será calculada: distância (km) × este valor.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Tempo Médio de Preparação (minutos)</label>

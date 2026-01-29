@@ -64,7 +64,39 @@ router.get('/:slug', async (req, res) => {
   }
 });
 
-// Calcular taxa e tempo de entrega por CEP (para calculador no frontend)
+// Distância em km entre dois pontos (fórmula de Haversine)
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const toRad = (n: number) => (n * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Buscar coordenadas de um CEP via BrasilAPI (v2 retorna location.coordinates)
+async function getCepCoordinates(cep: string): Promise<{ lat: number; lon: number } | null> {
+  const normalized = cep.replace(/\D/g, '').slice(0, 8);
+  if (normalized.length !== 8) return null;
+  try {
+    const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${normalized}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const coords = data?.location?.coordinates;
+    if (!coords || coords.latitude == null || coords.longitude == null) return null;
+    return {
+      lat: parseFloat(coords.latitude),
+      lon: parseFloat(coords.longitude),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Calcular taxa e tempo de entrega por CEP
 router.get('/:slug/calculate-delivery', async (req, res) => {
   try {
     const { slug } = req.params;
@@ -75,21 +107,56 @@ router.get('/:slug/calculate-delivery', async (req, res) => {
 
     const business = await prisma.business.findUnique({
       where: { slug, active: true },
-      select: { deliveryFee: true, avgPrepTime: true, deliveryEnabled: true },
+      select: {
+        deliveryFee: true,
+        deliveryFeePerKm: true,
+        businessCep: true,
+        avgPrepTime: true,
+        deliveryEnabled: true,
+      },
     });
 
     if (!business || !business.deliveryEnabled) {
       return res.status(404).json({ error: 'Delivery não disponível para este estabelecimento.' });
     }
 
-    // Por enquanto retorna a taxa fixa do negócio; depois pode-se adicionar zonas por CEP
-    const fee = Number(business.deliveryFee);
+    const businessCepNorm = business.businessCep?.replace(/\D/g, '').slice(0, 8);
+    const hasPerKm =
+      businessCepNorm?.length === 8 &&
+      business.deliveryFeePerKm != null &&
+      Number(business.deliveryFeePerKm) >= 0;
+
+    let fee: number;
+    let distanceKm: number | undefined;
+
+    if (hasPerKm) {
+      const [businessCoords, customerCoords] = await Promise.all([
+        getCepCoordinates(businessCepNorm),
+        getCepCoordinates(cep),
+      ]);
+      if (!businessCoords || !customerCoords) {
+        return res.status(400).json({
+          error: 'Não foi possível obter a localização de um dos CEPs. Verifique se estão corretos.',
+        });
+      }
+      distanceKm = haversineKm(
+        businessCoords.lat,
+        businessCoords.lon,
+        customerCoords.lat,
+        customerCoords.lon
+      );
+      fee = Math.round(distanceKm * Number(business.deliveryFeePerKm) * 100) / 100;
+    } else {
+      fee = Number(business.deliveryFee);
+    }
+
     const estimatedMinutes = business.avgPrepTime || 30;
 
     res.json({
       fee,
       estimatedMinutes,
       cep: `${cep.slice(0, 5)}-${cep.slice(5)}`,
+      ...(distanceKm != null && { distanceKm: Math.round(distanceKm * 100) / 100 }),
     });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao calcular entrega' });

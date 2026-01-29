@@ -9,6 +9,7 @@ import AdminCategories from './pages/admin/AdminCategories';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminPromotions from './pages/admin/AdminPromotions';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Navigate } from "react-router-dom";
 
@@ -46,6 +47,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminProducts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/promotions"
+            element={
+              <ProtectedRoute>
+                <AdminPromotions />
               </ProtectedRoute>
             }
           />
