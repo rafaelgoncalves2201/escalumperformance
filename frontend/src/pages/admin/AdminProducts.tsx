@@ -165,7 +165,9 @@ export default function AdminProducts() {
                 <img
                   src={`http://localhost:3001${product.image}`}
                   alt={product.name}
-                  className="w-full h-48 object-cover"
+                  className="w-full h-48 object-cover object-center"
+                  loading="lazy"
+                  decoding="async"
                 />
               )}
               <div className="p-4">

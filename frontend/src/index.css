@@ -14,10 +14,26 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #000000;
+  background: linear-gradient(135deg, #0a0a1a 0%, #0E1BC7 25%, #1323FD 50%, #0a0a1a 100%);
+  background-attachment: fixed;
   color: #ffffff;
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* Imagens em alta qualidade: nitidez e sem compressão agressiva */
+img {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+img[src*="localhost"],
+img[src^="/"],
+img[src*=".png"],
+img[src*=".jpg"],
+img[src*=".jpeg"],
+img[src*=".webp"] {
+  image-rendering: auto;
+  image-rendering: -webkit-optimize-contrast;
 }

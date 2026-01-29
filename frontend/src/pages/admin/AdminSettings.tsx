@@ -39,8 +39,8 @@ export default function AdminSettings() {
     deliveryFee: '',
     avgPrepTime: '',
     mercadoPagoToken: '',
-    menuPrimaryColor: '#364C66',
-    menuBackgroundColor: '#000000',
+    menuPrimaryColor: '#1323FD',
+    menuBackgroundColor: '#0a0a1a',
     menuTextColor: '#FFFFFF',
   });
 
@@ -63,8 +63,8 @@ export default function AdminSettings() {
         deliveryFee: data.deliveryFee?.toString() || '',
         avgPrepTime: data.avgPrepTime?.toString() || '',
         mercadoPagoToken: data.mercadoPagoToken || '',
-        menuPrimaryColor: data.menuPrimaryColor || '#364C66',
-        menuBackgroundColor: data.menuBackgroundColor || '#000000',
+        menuPrimaryColor: data.menuPrimaryColor || '#1323FD',
+        menuBackgroundColor: data.menuBackgroundColor || '#0a0a1a',
         menuTextColor: data.menuTextColor || '#FFFFFF',
       });
       setLoading(false);
@@ -179,7 +179,9 @@ export default function AdminSettings() {
                 <img
                   src={`http://localhost:3001${business.logo}`}
                   alt="Logo"
-                  className="w-24 h-24 rounded-lg object-cover"
+                  className="w-24 h-24 rounded-lg object-cover object-center ring-2 ring-primary/50"
+                  loading="eager"
+                  decoding="async"
                 />
               )}
               <label className="cursor-pointer">
@@ -351,7 +353,9 @@ export default function AdminSettings() {
                       <img
                         src={`http://localhost:3001${business.menuWallpaperImage}`}
                         alt="Wallpaper"
-                        className="w-full h-32 rounded-lg object-cover mb-3"
+                        className="w-full h-32 rounded-lg object-cover object-center mb-3 ring-2 ring-white/10"
+                        loading="lazy"
+                        decoding="async"
                       />
                       <button
                         type="button"

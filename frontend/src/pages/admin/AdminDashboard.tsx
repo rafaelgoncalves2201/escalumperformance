@@ -48,19 +48,22 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(160deg, #0a0a1a 0%, #0E1BC7 20%, #1323FD 50%, #0a0a1a 100%)', backgroundAttachment: 'fixed' }}>
       {/* Header */}
-      <header className="bg-primary sticky top-0 z-40 shadow-lg">
+      <header className="sticky top-0 z-40 shadow-xl border-b border-white/10" style={{ background: 'linear-gradient(135deg, #1323FD 0%, #0E1BC7 100%)' }}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Escalum</h1>
-              <p className="text-sm text-gray-300">{business?.name}</p>
+            <div className="flex items-center gap-3">
+              <img src="/logo-desenvolvedor.png" alt="Escalum" className="h-9 w-auto object-contain opacity-95" />
+              <div>
+                <h1 className="text-2xl font-bold">Escalum</h1>
+                <p className="text-sm text-gray-300">{business?.name}</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <Link
                 to="/admin/settings"
-                className="px-4 py-2 bg-primary-light hover:bg-primary-dark rounded-lg transition"
+                className="px-4 py-2 rounded-lg transition bg-white/20 hover:bg-white/30"
               >
                 <Settings className="inline mr-2" size={18} />
                 Configurações

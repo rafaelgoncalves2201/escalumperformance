@@ -8,10 +8,15 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#364C66',
-          light: '#4A6B8A',
-          dark: '#2A3A4D',
+          DEFAULT: '#1323FD',
+          light: '#3D4FFE',
+          dark: '#0E1BC7',
         },
+      },
+      backgroundImage: {
+        'gradient-primary': 'linear-gradient(135deg, #1323FD 0%, #3D4FFE 50%, #0E1BC7 100%)',
+        'gradient-dark': 'linear-gradient(180deg, #0a0a1a 0%, #1323FD22 40%, #0a0a1a 100%)',
+        'gradient-card': 'linear-gradient(145deg, rgba(19,35,253,0.15) 0%, rgba(19,35,253,0.05) 100%)',
       },
     },
   },

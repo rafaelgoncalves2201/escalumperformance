@@ -255,40 +255,56 @@ export default function MenuPage() {
 
   if (!business) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+      <div className="min-h-screen flex items-center justify-center text-white" style={{ background: 'linear-gradient(160deg, #0a0a1a 0%, #1323FD 50%, #0a0a1a 100%)', backgroundAttachment: 'fixed' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/30 border-t-primary mx-auto mb-4"></div>
           <p>Carregando menu...</p>
         </div>
       </div>
     );
   }
 
-  const primary = business.menuPrimaryColor || '#364C66';
-  const bg = business.menuBackgroundColor || '#000000';
+  const primary = business.menuPrimaryColor || '#1323FD';
+  const bg = business.menuBackgroundColor || '#0a0a1a';
   const text = business.menuTextColor || '#FFFFFF';
   const wallpaper = business.menuWallpaperImage ? `http://localhost:3001${business.menuWallpaperImage}` : null;
   const banner = business.menuBannerImage ? `http://localhost:3001${business.menuBannerImage}` : null;
 
-  return (
-    <div
-      className="min-h-screen text-white"
-      style={{
-        backgroundColor: bg,
+  const backgroundStyle = wallpaper
+    ? {
         color: text,
-        backgroundImage: wallpaper ? `linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.9)), url(${wallpaper})` : undefined,
+        backgroundImage: `linear-gradient(180deg, rgba(19,35,253,0.35) 0%, rgba(0,0,0,0.7) 30%, rgba(0,0,0,0.92) 100%), url(${wallpaper})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
-      }}
-    >
-      {/* Header */}
-      <header className="sticky top-0 z-40 shadow-lg" style={{ backgroundColor: primary }}>
+      }
+    : {
+        color: text,
+        background: `linear-gradient(160deg, ${bg} 0%, #0E1BC7 25%, #1323FD 45%, #0a0a1a 100%)`,
+        backgroundAttachment: 'fixed',
+      };
+
+  return (
+    <div className="min-h-screen text-white" style={backgroundStyle}>
+      {/* Header com gradiente */}
+      <header
+        className="sticky top-0 z-40 shadow-xl border-b border-white/10"
+        style={{
+          background: `linear-gradient(135deg, ${primary} 0%, ${primary}dd 50%, #0E1BC7 100%)`,
+          boxShadow: '0 4px 24px rgba(19,35,253,0.35)',
+        }}
+      >
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {business.logo && (
-                <img src={`http://localhost:3001${business.logo}`} alt={business.name} className="h-12 w-12 rounded-full object-cover" />
+                <img
+                  src={`http://localhost:3001${business.logo}`}
+                  alt={business.name}
+                  className="h-12 w-12 rounded-full object-cover ring-2 ring-white/30 shadow-lg"
+                  loading="eager"
+                  decoding="async"
+                />
               )}
               <div>
                 <h1 className="text-xl font-bold">{business.name}</h1>
@@ -297,8 +313,8 @@ export default function MenuPage() {
             </div>
             <button
               onClick={() => setShowCart(true)}
-              className="relative px-4 py-2 rounded-lg transition"
-              style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
+              className="relative px-4 py-2 rounded-lg transition hover:bg-white/20"
+              style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
             >
               <ShoppingCart className="inline mr-2" size={20} />
               Carrinho
@@ -315,13 +331,20 @@ export default function MenuPage() {
       {/* Banner */}
       {banner && (
         <section className="container mx-auto px-4 pt-4">
-          <div className="rounded-xl overflow-hidden shadow-lg">
+          <div className="rounded-2xl overflow-hidden shadow-2xl ring-2 ring-white/10">
             <div className="relative">
-              <img src={banner} alt="Banner" className="w-full h-36 md:h-52 object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-              <div className="absolute bottom-3 left-4">
-                <h2 className="text-xl md:text-2xl font-bold">{business.name}</h2>
-                <p className="text-sm text-white/80">Menu personalizado</p>
+              <img
+                src={banner}
+                alt="Banner"
+                className="w-full h-36 md:h-52 object-cover object-center"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute bottom-4 left-4">
+                <h2 className="text-xl md:text-2xl font-bold drop-shadow-lg">{business.name}</h2>
+                <p className="text-sm text-white/90">Menu personalizado</p>
               </div>
             </div>
           </div>
@@ -329,27 +352,38 @@ export default function MenuPage() {
       )}
 
       {/* Menu */}
-      <main className="container mx-auto px-4 py-8 pb-24">
+      <main className="container mx-auto px-4 py-8 pb-28">
         {categories.map(category => (
           <section key={category.id} className="mb-12">
-            <h2 className="text-2xl font-bold mb-6" style={{ color: primary }}>{category.name}</h2>
+            <h2 className="text-2xl font-bold mb-6 drop-shadow-sm" style={{ color: primary }}>
+              {category.name}
+            </h2>
             {category.description && (
-              <p className="text-gray-400 mb-6">{category.description}</p>
+              <p className="text-gray-300/90 mb-6">{category.description}</p>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {category.products.map(product => (
-                <div key={product.id} className="bg-gray-900/85 backdrop-blur rounded-lg overflow-hidden hover:bg-gray-800/90 transition">
+                <div
+                  key={product.id}
+                  className="rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/10 bg-gradient-to-b from-gray-900/95 to-gray-900/85 backdrop-blur-sm"
+                  style={{ boxShadow: '0 8px 32px rgba(19,35,253,0.15)' }}
+                >
                   {product.image && (
-                    <img
-                      src={`http://localhost:3001${product.image}`}
-                      alt={product.name}
-                      className="w-full h-48 object-cover"
-                    />
+                    <div className="relative overflow-hidden">
+                      <img
+                        src={`http://localhost:3001${product.image}`}
+                        alt={product.name}
+                        className="w-full h-52 object-cover object-center"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                    </div>
                   )}
-                  <div className="p-4">
+                  <div className="p-5">
                     <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
                     {product.description && (
-                      <p className="text-gray-400 text-sm mb-4">{product.description}</p>
+                      <p className="text-gray-400 text-sm mb-4 line-clamp-2">{product.description}</p>
                     )}
                     <div className="flex items-center justify-between">
                       <span className="text-2xl font-bold" style={{ color: primary }}>
@@ -357,8 +391,11 @@ export default function MenuPage() {
                       </span>
                       <button
                         onClick={() => addToCart(product)}
-                        className="px-4 py-2 rounded-lg transition"
-                        style={{ backgroundColor: primary }}
+                        className="px-4 py-2 rounded-xl transition hover:opacity-90 shadow-lg"
+                        style={{
+                          background: `linear-gradient(135deg, ${primary} 0%, #0E1BC7 100%)`,
+                          boxShadow: `0 4px 14px ${primary}66`,
+                        }}
                       >
                         <Plus size={20} />
                       </button>
@@ -371,10 +408,30 @@ export default function MenuPage() {
         ))}
       </main>
 
+      {/* Rodapé com logo da empresa que desenvolveu o sistema */}
+      <footer className="py-6 border-t border-white/10 bg-black/30 backdrop-blur-sm">
+        <div className="container mx-auto px-4 flex flex-col items-center gap-3">
+          <p className="text-sm text-white/70">Desenvolvido por</p>
+          <a
+            href="/"
+            className="flex items-center gap-2 opacity-90 hover:opacity-100 transition"
+            aria-label="Logo da empresa desenvolvedora"
+          >
+            <img
+              src="/logo-desenvolvedor.png"
+              alt="Logo da empresa que desenvolveu o sistema"
+              className="h-10 w-auto max-w-[140px] object-contain object-center"
+              loading="lazy"
+              decoding="async"
+            />
+          </a>
+        </div>
+      </footer>
+
       {/* Cart Sidebar */}
       {showCart && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowCart(false)}>
-          <div className="absolute right-0 top-0 h-full w-full md:w-96 bg-gray-900 shadow-xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowCart(false)}>
+          <div className="absolute right-0 top-0 h-full w-full md:w-96 bg-gradient-to-b from-gray-900 to-gray-950 shadow-2xl border-l border-white/10 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold">Carrinho</h2>
@@ -390,9 +447,10 @@ export default function MenuPage() {
                   <button
                     onClick={() => setOrderType('DELIVERY')}
                     className={`flex-1 py-2 px-4 rounded-lg transition ${orderType === 'DELIVERY'
-                        ? 'bg-primary text-white'
+                        ? 'text-white shadow-lg'
                         : 'bg-gray-800 text-gray-300'
                       }`}
+                    style={orderType === 'DELIVERY' ? { background: `linear-gradient(135deg, ${primary} 0%, #0E1BC7 100%)` } : undefined}
                     disabled={!business.deliveryEnabled}
                   >
                     <MapPin className="inline mr-2" size={16} />
@@ -401,9 +459,10 @@ export default function MenuPage() {
                   <button
                     onClick={() => setOrderType('PICKUP')}
                     className={`flex-1 py-2 px-4 rounded-lg transition ${orderType === 'PICKUP'
-                        ? 'bg-primary text-white'
+                        ? 'text-white shadow-lg'
                         : 'bg-gray-800 text-gray-300'
                       }`}
+                    style={orderType === 'PICKUP' ? { background: `linear-gradient(135deg, ${primary} 0%, #0E1BC7 100%)` } : undefined}
                     disabled={!business.pickupEnabled}
                   >
                     <Clock className="inline mr-2" size={16} />
@@ -647,7 +706,8 @@ export default function MenuPage() {
                   <button
                     onClick={handleCheckout}
                     disabled={isProcessing || cart.length === 0}
-                    className="w-full bg-primary hover:bg-primary-light py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-3 rounded-xl font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                    style={{ background: `linear-gradient(135deg, ${primary} 0%, #0E1BC7 100%)` }}
                   >
                     {isProcessing ? 'Processando...' : 'Finalizar Pedido'}
                   </button>

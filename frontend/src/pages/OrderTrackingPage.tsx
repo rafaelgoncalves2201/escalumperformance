@@ -131,9 +131,9 @@ export default function OrderTrackingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(160deg, #0a0a1a 0%, #0E1BC7 25%, #1323FD 45%, #0a0a1a 100%)', backgroundAttachment: 'fixed' }}>
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <div className="bg-gray-900 rounded-lg p-6 mb-6">
+        <div className="bg-gray-900/90 backdrop-blur rounded-2xl p-6 mb-6 border border-white/10 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold">Pedido #{order.orderNumber}</h1>
             {getStatusIcon(order.status)}
@@ -151,7 +151,9 @@ export default function OrderTrackingPage() {
                   <img
                     src={`http://localhost:3001${item.product.image}`}
                     alt={item.product.name}
-                    className="w-16 h-16 rounded-lg object-cover"
+                    className="w-16 h-16 rounded-lg object-cover object-center ring-2 ring-white/10"
+                    loading="lazy"
+                    decoding="async"
                   />
                 )}
                 <div className="flex-1">
@@ -206,6 +208,17 @@ export default function OrderTrackingPage() {
             )}
           </div>
         </div>
+
+        {/* Logo da empresa desenvolvedora */}
+        <footer className="pt-8 pb-6 text-center border-t border-white/10">
+          <p className="text-sm text-white/60 mb-2">Desenvolvido por</p>
+          <img
+            src="/logo-desenvolvedor.png"
+            alt="Logo da empresa que desenvolveu o sistema"
+            className="h-8 w-auto max-w-[120px] mx-auto object-contain opacity-90"
+            loading="lazy"
+          />
+        </footer>
       </div>
     </div>
   );
