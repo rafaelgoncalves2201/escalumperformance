@@ -186,7 +186,6 @@ router.post('/logo', upload.single('logo'), async (req: AuthRequest, res) => {
       const oldLogoPath = path.join(__dirname, '../../uploads', relativePath);
       if (fs.existsSync(oldLogoPath)) fs.unlinkSync(oldLogoPath);
       }
-    }
 
     const logoPath = `/uploads/logos/${req.file.filename}`;
 
