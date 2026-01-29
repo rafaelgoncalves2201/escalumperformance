@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import prisma from '../config/database.js';
 import { io } from '../server.js';
-import { OrderStatus, Prisma } from "@prisma/client";
+import { Prisma, OrderStatus } from "@prisma/client";
 
 export const router = Router();
 
@@ -157,35 +157,33 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
     const { status, limit = '50', offset = '0' } = req.query;
 
-const { status, limit = '50', offset = '0' } = req.query;
+    const where: Prisma.OrderWhereInput = {
+      businessId: req.businessId,
+    };
 
-const where: Prisma.OrderWhereInput = {
-  businessId: req.businessId,
-};
+    if (status && Object.values(OrderStatus).includes(status as OrderStatus)) {
+      where.status = status as OrderStatus;
+    }
 
-if (status && Object.values(OrderStatus).includes(status as OrderStatus)) {
-  where.status = status as OrderStatus;
-}
-
-const orders = await prisma.order.findMany({
-  where,
-  include: {
-    items: {
+    const orders = await prisma.order.findMany({
+      where,
       include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              }
+            }
           }
         }
-      }
-    }
-  },
-  orderBy: { createdAt: 'desc' },
-  take: parseInt(limit as string),
-  skip: parseInt(offset as string),
-});
+      },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit as string),
+      skip: parseInt(offset as string),
+    });
 
     res.json(orders);
   } catch (error) {
