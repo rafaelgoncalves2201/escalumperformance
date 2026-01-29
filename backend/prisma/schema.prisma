@@ -20,6 +20,9 @@ model Business {
   menuPrimaryColor  String?  // ex: #364C66
   menuBackgroundColor String? // ex: #000000
   menuTextColor     String?  // ex: #FFFFFF
+  menuSubtitle      String?  // ex: "Apenas agendamento" (bloco info no menu)
+  menuOpeningText   String?  // ex: "Abrimos amanhã às 11h00"
+  menuMoreInfoLabel String?  // ex: "Mais informações"
   slug              String   @unique // Link único do menu
   email             String   @unique
   password          String

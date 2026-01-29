@@ -48,9 +48,9 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(160deg, #0a0a1a 0%, #0E1BC7 20%, #1323FD 50%, #0a0a1a 100%)', backgroundAttachment: 'fixed' }}>
+    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(160deg, #0a0a0a 0%, #171717 35%, #262626 70%, #0a0a0a 100%)', backgroundAttachment: 'fixed' }}>
       {/* Header */}
-      <header className="sticky top-0 z-40 shadow-xl border-b border-white/10" style={{ background: 'linear-gradient(135deg, #1323FD 0%, #0E1BC7 100%)' }}>
+      <header className="sticky top-0 z-40 shadow-xl border-b border-white/10" style={{ background: 'linear-gradient(135deg, #171717 0%, #262626 50%, #171717 100%)' }}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
           <div className="flex gap-1">
             <Link
               to="/admin"
-              className="px-6 py-4 border-b-2 border-primary text-primary font-semibold"
+              className="px-6 py-4 border-b-2 border-white text-white font-semibold"
             >
               Dashboard
             </Link>

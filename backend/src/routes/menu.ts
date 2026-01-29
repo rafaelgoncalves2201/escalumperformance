@@ -19,6 +19,9 @@ router.get('/:slug', async (req, res) => {
         menuPrimaryColor: true,
         menuBackgroundColor: true,
         menuTextColor: true,
+        menuSubtitle: true,
+        menuOpeningText: true,
+        menuMoreInfoLabel: true,
         slug: true,
         phone: true,
         address: true,
@@ -82,15 +85,20 @@ async function getCepCoordinates(cep: string): Promise<{ lat: number; lon: numbe
   const normalized = cep.replace(/\D/g, '').slice(0, 8);
   if (normalized.length !== 8) return null;
   try {
-    const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${normalized}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${normalized}`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
     if (!res.ok) return null;
     const data = await res.json();
     const coords = data?.location?.coordinates;
-    if (!coords || coords.latitude == null || coords.longitude == null) return null;
-    return {
-      lat: parseFloat(coords.latitude),
-      lon: parseFloat(coords.longitude),
-    };
+    if (!coords) return null;
+    const lat = coords.latitude != null ? parseFloat(String(coords.latitude)) : null;
+    const lon = coords.longitude != null ? parseFloat(String(coords.longitude)) : null;
+    if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return null;
+    return { lat, lon };
   } catch {
     return null;
   }
@@ -135,17 +143,17 @@ router.get('/:slug/calculate-delivery', async (req, res) => {
         getCepCoordinates(cep),
       ]);
       if (!businessCoords || !customerCoords) {
-        return res.status(400).json({
-          error: 'Não foi possível obter a localização de um dos CEPs. Verifique se estão corretos.',
-        });
+        // Fallback: usar taxa fixa quando não conseguir coordenadas (ex.: BrasilAPI fora do ar)
+        fee = Number(business.deliveryFee);
+      } else {
+        distanceKm = haversineKm(
+          businessCoords.lat,
+          businessCoords.lon,
+          customerCoords.lat,
+          customerCoords.lon
+        );
+        fee = Math.round(distanceKm * Number(business.deliveryFeePerKm) * 100) / 100;
       }
-      distanceKm = haversineKm(
-        businessCoords.lat,
-        businessCoords.lon,
-        customerCoords.lat,
-        customerCoords.lon
-      );
-      fee = Math.round(distanceKm * Number(business.deliveryFeePerKm) * 100) / 100;
     } else {
       fee = Number(business.deliveryFee);
     }

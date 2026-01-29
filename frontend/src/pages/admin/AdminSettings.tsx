@@ -14,6 +14,9 @@ interface Business {
   menuPrimaryColor: string | null;
   menuBackgroundColor: string | null;
   menuTextColor: string | null;
+  menuSubtitle: string | null;
+  menuOpeningText: string | null;
+  menuMoreInfoLabel: string | null;
   email: string;
   phone: string | null;
   address: string | null;
@@ -32,6 +35,7 @@ export default function AdminSettings() {
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -44,9 +48,12 @@ export default function AdminSettings() {
     deliveryFeePerKm: '',
     avgPrepTime: '',
     mercadoPagoToken: '',
-    menuPrimaryColor: '#1323FD',
-    menuBackgroundColor: '#0a0a1a',
+    menuPrimaryColor: '#404040',
+    menuBackgroundColor: '#0a0a0a',
     menuTextColor: '#FFFFFF',
+    menuSubtitle: '',
+    menuOpeningText: '',
+    menuMoreInfoLabel: '',
   });
 
   useEffect(() => {
@@ -70,9 +77,12 @@ export default function AdminSettings() {
         deliveryFeePerKm: data.deliveryFeePerKm != null ? String(data.deliveryFeePerKm) : '',
         avgPrepTime: data.avgPrepTime?.toString() || '',
         mercadoPagoToken: data.mercadoPagoToken || '',
-        menuPrimaryColor: data.menuPrimaryColor || '#1323FD',
-        menuBackgroundColor: data.menuBackgroundColor || '#0a0a1a',
+        menuPrimaryColor: data.menuPrimaryColor || '#404040',
+        menuBackgroundColor: data.menuBackgroundColor || '#0a0a0a',
         menuTextColor: data.menuTextColor || '#FFFFFF',
+        menuSubtitle: data.menuSubtitle || '',
+        menuOpeningText: data.menuOpeningText || '',
+        menuMoreInfoLabel: data.menuMoreInfoLabel || '',
       });
       setLoading(false);
     } catch (error) {
@@ -83,14 +93,27 @@ export default function AdminSettings() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.address?.trim()) {
+      toast.error('Endereço é obrigatório.');
+      return;
+    }
+    const cepNorm = formData.businessCep.replace(/\D/g, '').slice(0, 8);
+    if (cepNorm.length !== 8) {
+      toast.error('CEP do estabelecimento é obrigatório (8 dígitos).');
+      return;
+    }
     setSaving(true);
     try {
       await api.put('/business', {
         ...formData,
+        address: formData.address.trim(),
         deliveryFee: parseFloat(formData.deliveryFee) || 0,
-        businessCep: formData.businessCep.replace(/\D/g, '').slice(0, 8) || null,
+        businessCep: cepNorm || null,
         deliveryFeePerKm: formData.deliveryFeePerKm !== '' ? parseFloat(formData.deliveryFeePerKm) : null,
         avgPrepTime: parseInt(formData.avgPrepTime) || 30,
+        menuSubtitle: formData.menuSubtitle.trim() || null,
+        menuOpeningText: formData.menuOpeningText.trim() || null,
+        menuMoreInfoLabel: formData.menuMoreInfoLabel.trim() || null,
       });
       toast.success('Configurações salvas!');
       loadBusiness();
@@ -111,6 +134,44 @@ export default function AdminSettings() {
     }
   };
 
+
+  const formatCep = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 8);
+    if (d.length <= 5) return d;
+    return `${d.slice(0, 5)}-${d.slice(5)}`;
+  };
+
+  const consultarCep = async () => {
+    const cep = formData.businessCep.replace(/\D/g, '');
+    if (cep.length !== 8) {
+      toast.error('Informe um CEP com 8 dígitos para consultar.');
+      return;
+    }
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        toast.error('CEP não encontrado.');
+        setCepLoading(false);
+        return;
+      }
+      const partes = [
+        data.logradouro,
+        data.bairro,
+        data.localidade ? `${data.localidade} - ${data.uf || ''}` : '',
+      ].filter(Boolean);
+      setFormData((prev) => ({
+        ...prev,
+        address: partes.join(', ') || prev.address,
+      }));
+      toast.success('Endereço preenchido pelo CEP.');
+    } catch {
+      toast.error('Falha ao consultar CEP.');
+    } finally {
+      setCepLoading(false);
+    }
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -232,25 +293,37 @@ export default function AdminSettings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Endereço completo</label>
+                <label className="block text-sm font-medium mb-2">CEP do estabelecimento *</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formatCep(formData.businessCep)}
+                    onChange={(e) => setFormData({ ...formData, businessCep: e.target.value.replace(/\D/g, '').slice(0, 8) })}
+                    placeholder="00000-000"
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={consultarCep}
+                    disabled={cepLoading || formData.businessCep.replace(/\D/g, '').length !== 8}
+                    className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-light transition disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {cepLoading ? 'Buscando...' : 'Consultar CEP'}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Obrigatório. Use &quot;Consultar CEP&quot; para preencher o endereço.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Endereço completo *</label>
                 <input
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="Rua, número, bairro, cidade - para exibir no menu"
+                  placeholder="Rua, número, bairro, cidade - exibido no menu e usado no cálculo de entrega"
+                  required
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">CEP do estabelecimento</label>
-                <input
-                  type="text"
-                  value={formData.businessCep}
-                  onChange={(e) => setFormData({ ...formData, businessCep: e.target.value.replace(/\D/g, '').slice(0, 8) })}
-                  placeholder="8 dígitos (para cálculo de taxa por km)"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
-                />
-                <p className="text-xs text-gray-400 mt-1">Preencha se quiser que a taxa de entrega seja calculada pela distância (km).</p>
+                <p className="text-xs text-gray-400 mt-1">Obrigatório. Após consultar o CEP, complete com o número se necessário.</p>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -332,6 +405,42 @@ export default function AdminSettings() {
             <h2 className="text-xl font-bold mb-4">Personalização do Menu</h2>
 
             <div className="space-y-5">
+              <div>
+                <h3 className="font-semibold mb-3">Texto do bloco da loja (exibido no menu do cliente)</h3>
+                <p className="text-xs text-gray-400 mb-3">Personalize os textos que aparecem abaixo da logo no menu público.</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Subtítulo</label>
+                    <input
+                      type="text"
+                      value={formData.menuSubtitle}
+                      onChange={(e) => setFormData({ ...formData, menuSubtitle: e.target.value })}
+                      placeholder="Ex: Apenas agendamento"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Texto de horário / status</label>
+                    <input
+                      type="text"
+                      value={formData.menuOpeningText}
+                      onChange={(e) => setFormData({ ...formData, menuOpeningText: e.target.value })}
+                      placeholder="Ex: Abrimos amanhã às 11h00"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Texto do link &quot;Mais informações&quot;</label>
+                    <input
+                      type="text"
+                      value={formData.menuMoreInfoLabel}
+                      onChange={(e) => setFormData({ ...formData, menuMoreInfoLabel: e.target.value })}
+                      placeholder="Ex: Mais informações"
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Cor primária</label>

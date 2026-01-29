@@ -31,6 +31,9 @@ interface Business {
   menuPrimaryColor?: string | null;
   menuBackgroundColor?: string | null;
   menuTextColor?: string | null;
+  menuSubtitle?: string | null;
+  menuOpeningText?: string | null;
+  menuMoreInfoLabel?: string | null;
   slug: string;
   phone: string | null;
   address: string | null;
@@ -392,9 +395,9 @@ export default function MenuPage() {
 
   if (!business) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white" style={{ background: 'linear-gradient(160deg, #0a0a1a 0%, #1323FD 50%, #0a0a1a 100%)', backgroundAttachment: 'fixed' }}>
+      <div className="min-h-screen flex items-center justify-center text-white" style={{ background: 'linear-gradient(160deg, #0a0a0a 0%, #171717 50%, #0a0a0a 100%)', backgroundAttachment: 'fixed' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/30 border-t-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/30 border-t-gray-400 mx-auto mb-4"></div>
           <p>Carregando menu...</p>
         </div>
       </div>
@@ -417,12 +420,12 @@ export default function MenuPage() {
       }
     : {
         color: text,
-        background: `linear-gradient(160deg, ${bg} 0%, #0E1BC7 25%, #1323FD 45%, #0a0a1a 100%)`,
+        background: `linear-gradient(160deg, ${bg} 0%, #171717 35%, #262626 70%, #0a0a0a 100%)`,
         backgroundAttachment: 'fixed',
       };
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-6 sm:pb-0" style={{ color: text, ...(wallpaper ? { ...backgroundStyle, backgroundImage: backgroundStyle.backgroundImage } : { background: bg }) }}>
+    <div className="min-h-screen bg-gray-100 pb-6 sm:pb-0" style={wallpaper ? { ...backgroundStyle, backgroundImage: backgroundStyle.backgroundImage } : { color: text, background: bg }}>
       {/* Header: cores do negócio - responsivo */}
       <header
         className="sticky top-0 z-40 shadow-lg text-white"
@@ -475,11 +478,17 @@ export default function MenuPage() {
           )}
           <div className="flex-1 min-w-0">
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold break-words" style={{ color: primary }}>{business.name}</h1>
-            <p className="font-medium mt-0.5 sm:mt-1 text-sm sm:text-base" style={{ color: primary }}>Apenas agendamento</p>
-            <p className="text-xs sm:text-sm mt-0.5 opacity-90" style={{ color: primary }}>Abrimos amanhã às 11h00</p>
+            {business.menuSubtitle?.trim() && (
+              <p className="font-medium mt-0.5 sm:mt-1 text-sm sm:text-base" style={{ color: primary }}>{business.menuSubtitle}</p>
+            )}
+            {business.menuOpeningText?.trim() && (
+              <p className="text-xs sm:text-sm mt-0.5 opacity-90" style={{ color: primary }}>{business.menuOpeningText}</p>
+            )}
             {business.address && <p className="text-gray-500 text-xs sm:text-sm mt-1 break-words">{business.address}</p>}
             {business.phone && <p className="text-gray-500 text-xs sm:text-sm">{business.phone}</p>}
-            <a href="#categorias" className="inline-block mt-2 text-xs sm:text-sm font-medium hover:underline min-h-[44px] flex items-center" style={{ color: primary }}>Mais informações</a>
+            <a href="#categorias" className="inline-block mt-2 text-xs sm:text-sm font-medium hover:underline min-h-[44px] flex items-center" style={{ color: primary }}>
+              {business.menuMoreInfoLabel?.trim() || 'Mais informações'}
+            </a>
           </div>
         </div>
       </section>

@@ -115,6 +115,9 @@ const updateSchema = z.object({
   menuPrimaryColor: z.string().optional(),
   menuBackgroundColor: z.string().optional(),
   menuTextColor: z.string().optional(),
+  menuSubtitle: z.string().optional().nullable(),
+  menuOpeningText: z.string().optional().nullable(),
+  menuMoreInfoLabel: z.string().optional().nullable(),
 });
 
 router.put('/', async (req: AuthRequest, res) => {
@@ -149,6 +152,9 @@ router.put('/', async (req: AuthRequest, res) => {
         menuPrimaryColor: true,
         menuBackgroundColor: true,
         menuTextColor: true,
+        menuSubtitle: true,
+        menuOpeningText: true,
+        menuMoreInfoLabel: true,
         createdAt: true,
         updatedAt: true,
       }

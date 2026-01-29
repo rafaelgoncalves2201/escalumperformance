@@ -14,7 +14,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #0a0a1a 0%, #0E1BC7 25%, #1323FD 50%, #0a0a1a 100%);
+  background: linear-gradient(160deg, #0a0a0a 0%, #171717 35%, #262626 70%, #0a0a0a 100%);
   background-attachment: fixed;
   color: #ffffff;
 }
