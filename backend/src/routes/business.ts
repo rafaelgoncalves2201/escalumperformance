@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configurar upload - logos
-const uploadDir = path.join(__dirname, '../../uploads/logos');
+const uploadDir = app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
 const menuUploadDir = path.join(__dirname, '../../uploads/menu');
 [uploadDir, menuUploadDir].forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -170,9 +170,9 @@ router.post('/logo', upload.single('logo'), async (req: AuthRequest, res) => {
 
     // Deletar logo antiga se existir
     if (business?.logo) {
-      const oldLogoPath = path.join(__dirname, '../../uploads', business.logo);
-      if (fs.existsSync(oldLogoPath)) {
-        fs.unlinkSync(oldLogoPath);
+      const relativePath = business.logo.replace(/^\/uploads\//, ''); // "logos/xxx.jpg"
+      const oldLogoPath = path.join(__dirname, '../../uploads', relativePath);
+      if (fs.existsSync(oldLogoPath)) fs.unlinkSync(oldLogoPath);
       }
     }
 
