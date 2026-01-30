@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configurar upload - logos
-const uploadDir = app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
+const uploadDir = path.join(__dirname, '../../uploads/logos');
 const menuUploadDir = path.join(__dirname, '../../uploads/menu');
 [uploadDir, menuUploadDir].forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
