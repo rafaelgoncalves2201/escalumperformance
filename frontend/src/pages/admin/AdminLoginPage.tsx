@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
           <img
             src="/logo-desenvolvedor.png"
             alt="Escalum"
-            className="h-16 w-auto mx-auto object-contain opacity-90 mb-4"
+            className="h-25 w-auto mx-auto object-contain opacity-90 mb-4"
           />
           <p className="text-gray-400 text-sm">Área Administrativa</p>
         </div>
