@@ -257,9 +257,8 @@ export default function MenuPage() {
     const distanceKm =
       res.data?.distanceKm != null ? Number(res.data.distanceKm) : undefined;
 
-    // ✅ validação forte pra não crashar no render
     if (!Number.isFinite(fee) || !Number.isFinite(estimatedMinutes)) {
-      throw new Error('Resposta inválida do servidor (fee/estimatedMinutes).');
+      throw new Error(`Resposta inválida do servidor: ${JSON.stringify(res.data)}`);
     }
 
     setDeliveryCalcResult({
@@ -271,12 +270,7 @@ export default function MenuPage() {
 
     toast.success('Entrega calculada!');
   } catch (err: any) {
-    const msg =
-      err?.response?.data?.error ||
-      err?.message ||
-      'Erro ao calcular entrega';
-
-    toast.error(msg);
+    toast.error(err?.response?.data?.error || err?.message || 'Erro ao calcular entrega');
     setDeliveryCalcResult(null);
   } finally {
     setDeliveryCalcLoading(false);
