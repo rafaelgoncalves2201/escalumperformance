@@ -582,14 +582,19 @@ export default function MenuPage() {
               <button type="button" onClick={calculateDelivery} disabled={deliveryCalcLoading || onlyDigits(deliveryCalcCep).length !== 8} className="w-full py-2.5 rounded-lg font-medium text-white transition disabled:opacity-50 min-h-[44px]" style={{ background: primary }}>
                 {deliveryCalcLoading ? 'Calculando...' : 'Calcular'}
               </button>
-              {deliveryCalcResult && (
-                <div className="mt-3 p-2.5 sm:p-3 bg-gray-50 rounded-lg text-xs sm:text-sm">
-                  <p className="font-medium text-gray-800">CEP {deliveryCalcResult.cep}</p>
-                  {deliveryCalcResult.distanceKm != null && <p className="text-gray-600">Distância: {deliveryCalcResult.distanceKm} km</p>}
-                  <p className="text-gray-600">Taxa: R$ {deliveryCalcResult.fee.toFixed(2).replace('.', ',')}</p>
-                  <p className="text-gray-600">Tempo estimado: {deliveryCalcResult.estimatedMinutes} min</p>
-                </div>
-              )}
+              {deliveryCalcResult && Number.isFinite(deliveryCalcResult.fee) ? (
+              <div className="mt-3 p-2.5 sm:p-3 bg-gray-50 rounded-lg text-xs sm:text-sm">
+                <p className="font-medium text-gray-800">CEP {deliveryCalcResult.cep}</p>
+                {deliveryCalcResult.distanceKm != null && (
+                  <p className="text-gray-600">Distância: {deliveryCalcResult.distanceKm} km</p>
+                )}
+                <p className="text-gray-600">
+                  Taxa: R$ {deliveryCalcResult.fee.toFixed(2).replace('.', ',')}
+                </p>
+                <p className="text-gray-600">Tempo estimado: {deliveryCalcResult.estimatedMinutes} min</p>
+              </div>
+            ) : null}
+
             </div>
           </div>
           <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm p-3 sm:p-4">
