@@ -6,10 +6,10 @@ export const router = Router();
 // Obter menu público por slug
 router.get('/:slug', async (req, res) => {
   try {
-    const { slug } = req.params;
+    const slugNorm = String(req.params.slug || '').trim();
 
     const business = await prisma.business.findFirst({
-      where: { slug, active: true },
+      where: { slug: slugNorm },
       select: {
         id: true,
         name: true,
