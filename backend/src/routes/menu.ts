@@ -116,16 +116,16 @@ async function getCepCoordinates(cep: string): Promise<{ lat: number; lon: numbe
 // Calcular taxa e tempo de entrega por CEP
 router.get('/:slug/calculate-delivery', async (req, res) => {
   try {
-    const { slug } = req.params;
+    const slugNorm = String(req.params.slug || '').trim().toLowerCase();
     const cep = String(req.query.cep || '').replace(/\D/g, '');
+
     if (cep.length !== 8) {
       return res.status(400).json({ error: 'CEP inválido. Informe 8 dígitos.' });
     }
 
     const business = await prisma.business.findFirst({
-      where: { slug, active: true },
+      where: { slug: slugNorm, active: true },
       select: {
-        deliveryFee: true,
         deliveryFeePerKm: true,
         businessCep: true,
         avgPrepTime: true,
@@ -138,44 +138,54 @@ router.get('/:slug/calculate-delivery', async (req, res) => {
     }
 
     const businessCepNorm = business.businessCep?.replace(/\D/g, '').slice(0, 8);
+    const perKm = business.deliveryFeePerKm;
+
     const hasPerKm =
       businessCepNorm?.length === 8 &&
-      business.deliveryFeePerKm != null &&
-      Number(business.deliveryFeePerKm) >= 0;
+      perKm != null &&
+      Number(perKm) > 0;
 
-    let fee: number;
-    let distanceKm: number | undefined;
-
-    if (hasPerKm) {
-      const [businessCoords, customerCoords] = await Promise.all([
-        getCepCoordinates(businessCepNorm),
-        getCepCoordinates(cep),
-      ]);
-      if (!businessCoords || !customerCoords) {
-        // Fallback: usar taxa fixa quando não conseguir coordenadas (ex.: BrasilAPI fora do ar)
-        fee = Number(business.deliveryFee);
-      } else {
-        distanceKm = haversineKm(
-          businessCoords.lat,
-          businessCoords.lon,
-          customerCoords.lat,
-          customerCoords.lon
-        );
-        fee = Math.round(distanceKm * Number(business.deliveryFeePerKm) * 100) / 100;
-      }
-    } else {
-      fee = Number(business.deliveryFee);
+    if (!hasPerKm) {
+      return res.status(400).json({
+        error: 'Cálculo por KM não configurado. Preencha CEP do estabelecimento (8 dígitos) e Valor por KM (> 0).',
+      });
     }
 
+    // ✅ AQUI é o que faltava no seu trecho:
+    const [businessCoords, customerCoords] = await Promise.all([
+      getCepCoordinates(businessCepNorm!),
+      getCepCoordinates(cep),
+    ]);
+
+    if (!businessCoords) {
+      return res.status(422).json({
+        error: 'Não foi possível obter coordenadas do CEP do estabelecimento.'
+      });
+    }
+
+    if (!customerCoords) {
+      return res.status(422).json({
+        error: 'Não foi possível obter coordenadas do CEP informado.'
+      });
+    }
+
+    const distanceKm = haversineKm(
+      businessCoords.lat,
+      businessCoords.lon,
+      customerCoords.lat,
+      customerCoords.lon
+    );
+
+    const fee = Math.round(distanceKm * Number(perKm) * 100) / 100;
     const estimatedMinutes = business.avgPrepTime || 30;
 
-    res.json({
+    return res.json({
       fee,
       estimatedMinutes,
       cep: `${cep.slice(0, 5)}-${cep.slice(5)}`,
-      ...(distanceKm != null && { distanceKm: Math.round(distanceKm * 100) / 100 }),
+      distanceKm: Math.round(distanceKm * 100) / 100,
     });
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao calcular entrega' });
+    return res.status(500).json({ error: 'Erro ao calcular entrega' });
   }
 });
