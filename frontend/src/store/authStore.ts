@@ -33,7 +33,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ business, token, isLoading: false });
     } catch (error: any) {
       set({ isLoading: false });
-      throw new Error(error.response?.data?.error || 'Erro ao fazer login');
+      const msg = error.response?.data?.error
+        || (error.code === 'ERR_NETWORK' && 'Verifique se o backend está rodando e a URL da API.')
+        || error.message
+        || 'Erro ao fazer login';
+      throw new Error(msg);
     }
   },
 
