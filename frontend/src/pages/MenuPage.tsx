@@ -233,28 +233,56 @@ export default function MenuPage() {
   };
 
   const calculateDelivery = async () => {
-    const cepDigits = onlyDigits(deliveryCalcCep);
-    if (cepDigits.length !== 8) {
-      toast.error('Informe um CEP válido (8 dígitos)');
-      return;
+  const cepDigits = onlyDigits(deliveryCalcCep);
+
+  if (cepDigits.length !== 8) {
+    toast.error('Informe um CEP válido (8 dígitos)');
+    return;
+  }
+
+  if (!slug) {
+    toast.error('Menu inválido (slug não encontrado).');
+    return;
+  }
+
+  setDeliveryCalcLoading(true);
+
+  try {
+    const res = await api.get(`/menu/${slug}/calculate-delivery`, {
+      params: { cep: cepDigits },
+    });
+
+    const fee = Number(res.data?.fee);
+    const estimatedMinutes = Number(res.data?.estimatedMinutes);
+    const distanceKm =
+      res.data?.distanceKm != null ? Number(res.data.distanceKm) : undefined;
+
+    // ✅ validação forte pra não crashar no render
+    if (!Number.isFinite(fee) || !Number.isFinite(estimatedMinutes)) {
+      throw new Error('Resposta inválida do servidor (fee/estimatedMinutes).');
     }
-    setDeliveryCalcLoading(true);
-    try {
-      const res = await api.get(`/menu/${slug}/calculate-delivery`, { params: { cep: cepDigits } });
-      setDeliveryCalcResult({
-        fee: res.data.fee,
-        estimatedMinutes: res.data.estimatedMinutes,
-        cep: res.data.cep || deliveryCalcCep,
-        distanceKm: res.data.distanceKm,
-      });
-      toast.success('Entrega calculada!');
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Erro ao calcular entrega');
-      setDeliveryCalcResult(null);
-    } finally {
-      setDeliveryCalcLoading(false);
-    }
-  };
+
+    setDeliveryCalcResult({
+      fee,
+      estimatedMinutes,
+      cep: String(res.data?.cep || deliveryCalcCep),
+      distanceKm: Number.isFinite(distanceKm as number) ? distanceKm : undefined,
+    });
+
+    toast.success('Entrega calculada!');
+  } catch (err: any) {
+    const msg =
+      err?.response?.data?.error ||
+      err?.message ||
+      'Erro ao calcular entrega';
+
+    toast.error(msg);
+    setDeliveryCalcResult(null);
+  } finally {
+    setDeliveryCalcLoading(false);
+  }
+};
+
 
   const loadMenu = async () => {
     try {
