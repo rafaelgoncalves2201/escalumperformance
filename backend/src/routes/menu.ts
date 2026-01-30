@@ -81,6 +81,15 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 }
 
 // Buscar coordenadas de um CEP via BrasilAPI (v2 retorna location.coordinates)
+type BrasilApiCepV2 = {
+  location?: {
+    coordinates?: {
+      latitude: string | number;
+      longitude: string | number;
+    };
+  };
+};
+
 async function getCepCoordinates(cep: string): Promise<{ lat: number; lon: number } | null> {
   const normalized = cep.replace(/\D/g, '').slice(0, 8);
   if (normalized.length !== 8) return null;
@@ -92,12 +101,12 @@ async function getCepCoordinates(cep: string): Promise<{ lat: number; lon: numbe
     });
     clearTimeout(timeout);
     if (!res.ok) return null;
-    const data = await res.json();
-    const coords = data?.location?.coordinates;
+    const data = (await res.json()) as BrasilApiCepV2;
+    const coords = data.location?.coordinates;
     if (!coords) return null;
-    const lat = coords.latitude != null ? parseFloat(String(coords.latitude)) : null;
-    const lon = coords.longitude != null ? parseFloat(String(coords.longitude)) : null;
-    if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return null;
+    const lat = Number(coords.latitude);
+    const lon = Number(coords.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
     return { lat, lon };
   } catch {
     return null;
