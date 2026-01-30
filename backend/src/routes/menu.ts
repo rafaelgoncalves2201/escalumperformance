@@ -90,28 +90,84 @@ type BrasilApiCepV2 = {
   };
 };
 
+type ViaCepResp = {
+  erro?: boolean;
+  logradouro?: string;
+  bairro?: string;
+  localidade?: string;
+  uf?: string;
+};
+
+async function getAddressFromCep(cep: string): Promise<{ query: string } | null> {
+  const normalized = cep.replace(/\D/g, '').slice(0, 8);
+  if (normalized.length !== 8) return null;
+
+  const res = await fetch(`https://viacep.com.br/ws/${normalized}/json/`);
+  if (!res.ok) return null;
+
+  const data = (await res.json()) as ViaCepResp;
+  if (data.erro) return null;
+
+  const parts = [
+    data.logradouro,
+    data.bairro,
+    data.localidade,
+    data.uf,
+    'Brasil',
+  ].filter(Boolean);
+
+  const query = parts.join(', ');
+  if (!query.trim()) return null;
+
+  return { query };
+}
+
+async function geocodeWithNominatim(query: string): Promise<{ lat: number; lon: number } | null> {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'SeuApp/1.0',
+    },
+  });
+
+  if (!res.ok) return null;
+
+  const data = await res.json() as any[];
+  if (!data?.length) return null;
+
+  return {
+    lat: Number(data[0].lat),
+    lon: Number(data[0].lon),
+  };
+}
+
 async function getCepCoordinates(cep: string): Promise<{ lat: number; lon: number } | null> {
   const normalized = cep.replace(/\D/g, '').slice(0, 8);
   if (normalized.length !== 8) return null;
+
+  // tenta BrasilAPI primeiro
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${normalized}`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!res.ok) return null;
-    const data = (await res.json()) as BrasilApiCepV2;
-    const coords = data.location?.coordinates;
-    if (!coords) return null;
-    const lat = Number(coords.latitude);
-    const lon = Number(coords.longitude);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-    return { lat, lon };
-  } catch {
-    return null;
-  }
+    const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${normalized}`);
+    if (res.ok) {
+      const data: any = await res.json();
+      const coords = data?.location?.coordinates;
+      if (coords) {
+        return {
+          lat: Number(coords.latitude),
+          lon: Number(coords.longitude),
+        };
+      }
+    }
+  } catch {}
+
+  // fallback ViaCEP + Nominatim (sempre funciona melhor)
+  const addr = await getAddressFromCep(normalized);
+  if (!addr) return null;
+
+  return geocodeWithNominatim(addr.query);
 }
+
 
 // Calcular taxa e tempo de entrega por CEP
 router.get('/:slug/calculate-delivery', async (req, res) => {
