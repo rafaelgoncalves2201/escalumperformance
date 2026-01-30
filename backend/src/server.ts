@@ -21,20 +21,30 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const corsOrigins = (process.env.FRONTEND_URL || "http://localhost:5173")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: corsOrigins.length ? corsOrigins : ["http://localhost:5173"],
     methods: ["GET", "POST"]
   }
 });
 
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// Middleware CORS: aceita FRONTEND_URL única ou várias separadas por vírgula (ex.: Render, www)
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    const allowed = corsOrigins.length ? corsOrigins : ["http://localhost:5173"];
+    const ok = allowed.some((o) => origin === o || origin === o.replace(/\/$/, ""));
+    cb(null, ok ? true : false);
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -63,6 +73,9 @@ setupWebSocket(io);
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  if (corsOrigins.length) {
+    console.log(`   CORS permitido para: ${corsOrigins.join(", ")}`);
+  }
 });
 
 export { io };

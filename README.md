@@ -132,15 +132,19 @@ O sistema usa JWT para autenticação. O token é armazenado no localStorage e e
 
 ## 🚀 Deploy (Vercel + Render)
 
+### Deploy no Render (frontend + backend)
+Se **frontend e backend** estão no Render, use o guia **[RENDER_DEPLOY.md](./RENDER_DEPLOY.md)** para variáveis de ambiente e correção de erro de login.
+
+Resumo: no **frontend** defina **`VITE_API_URL`** = URL do backend (ex: `https://seu-backend.onrender.com`); no **backend** defina **`FRONTEND_URL`** = URL do frontend. Depois faça **Redeploy** dos dois.
+
 ### Backend na Render
 - Faça deploy do `backend/` na Render (Web Service, Node).
-- Configure `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL` (URL do frontend na Vercel) e `BACKEND_URL` (URL do serviço na Render).
+- Configure `DATABASE_URL`, `JWT_SECRET`, **`FRONTEND_URL`** (URL do frontend) e `BACKEND_URL` (URL do serviço na Render).
 
-### Frontend na Vercel
-- Faça deploy do `frontend/` na Vercel (root: `frontend`).
-- **Imagens e logos:** para as logos e imagens do backend carregarem no frontend, defina na Vercel a variável de ambiente:
-  - **`VITE_API_URL`** = URL do backend na Render (ex: `https://seu-backend.onrender.com`).
-- Sem `VITE_API_URL`, o frontend usa `http://localhost:3001` e as imagens quebram em produção.
+### Frontend (Vercel ou Render)
+- Faça deploy do `frontend/` na Vercel ou Render (root: `frontend`).
+- **Obrigatório em produção:** defina **`VITE_API_URL`** = URL do backend (ex: `https://seu-backend.onrender.com`). Sem isso, o login falha.
+- Após alterar `VITE_API_URL`, faça **Redeploy** do frontend.
 
 ## 📄 Licença
 

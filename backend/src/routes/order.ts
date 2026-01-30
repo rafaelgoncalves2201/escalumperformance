@@ -42,7 +42,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Slug do negócio é obrigatório' });
     }
 
-    const business = await prisma.business.findUnique({
+    const business = await prisma.business.findFirst({
       where: { slug: businessSlug as string, active: true },
     });
 

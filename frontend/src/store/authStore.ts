@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import api from '../lib/api';
+import api, { hasConfiguredApiUrl } from '../lib/api';
 
 interface Business {
   id: string;
@@ -18,6 +18,36 @@ interface AuthState {
   checkAuth: () => Promise<void>;
 }
 
+function isProduction(): boolean {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname;
+  return h !== 'localhost' && h !== '127.0.0.1';
+}
+
+function buildLoginErrorMessage(error: any): string {
+  const backendMsg = error.response?.data?.error;
+  const status = error.response?.status;
+  const code = error.code;
+  const prod = isProduction();
+
+  if (backendMsg) return backendMsg;
+  if (status === 404) {
+    return prod && !hasConfiguredApiUrl
+      ? 'API não encontrada. No Render, defina VITE_API_URL (URL do backend) nas variáveis de ambiente do frontend e faça "Redeploy".'
+      : 'API não encontrada. Verifique se a URL do backend está correta.';
+  }
+  if (code === 'ERR_NETWORK' || code === 'ECONNABORTED') {
+    if (prod && !hasConfiguredApiUrl) {
+      return 'Configure VITE_API_URL no Render (URL do backend) no serviço do frontend e FRONTEND_URL no backend (URL do frontend). Depois faça Redeploy nos dois.';
+    }
+    if (prod) {
+      return 'Não foi possível conectar ao servidor. Verifique: (1) Backend está rodando no Render; (2) FRONTEND_URL no backend = URL do frontend; (3) Cold start pode demorar ~50s no free tier.';
+    }
+    return 'Não foi possível conectar. Verifique se o backend está rodando (npm run dev no backend).';
+  }
+  return error.message || 'Erro ao fazer login';
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   business: null,
   token: localStorage.getItem('token'),
@@ -33,11 +63,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ business, token, isLoading: false });
     } catch (error: any) {
       set({ isLoading: false });
-      const msg = error.response?.data?.error
-        || (error.code === 'ERR_NETWORK' && 'Verifique se o backend está rodando e a URL da API.')
-        || error.message
-        || 'Erro ao fazer login';
-      throw new Error(msg);
+      throw new Error(buildLoginErrorMessage(error));
     }
   },
 

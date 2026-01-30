@@ -8,7 +8,7 @@ router.get('/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
 
-    const business = await prisma.business.findUnique({
+    const business = await prisma.business.findFirst({
       where: { slug, active: true },
       select: {
         id: true,
@@ -122,7 +122,7 @@ router.get('/:slug/calculate-delivery', async (req, res) => {
       return res.status(400).json({ error: 'CEP inválido. Informe 8 dígitos.' });
     }
 
-    const business = await prisma.business.findUnique({
+    const business = await prisma.business.findFirst({
       where: { slug, active: true },
       select: {
         deliveryFee: true,
