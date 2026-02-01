@@ -835,6 +835,37 @@ useEffect(() => {
                           onBlur={() => lookupCep(customerData.cep)}
                           className="text-primary"
                         />
+                        <button
+  type="button"
+  onClick={async () => {
+    const cepDigits = onlyDigits(customerData.cep).slice(0, 8);
+    if (cepDigits.length !== 8) {
+      toast.error('Informe um CEP válido (8 dígitos)');
+      return;
+    }
+    await fetchDelivery(cepDigits, 'checkout');
+    toast.success('Taxa atualizada!');
+  }}
+  disabled={deliveryCheckoutLoading || onlyDigits(customerData.cep).length !== 8}
+  className="w-full py-2.5 rounded-lg font-medium text-white transition disabled:opacity-50 min-h-[44px]"
+  style={{ background: primary }}
+>
+  {deliveryCheckoutLoading ? 'Calculando...' : 'Calcular taxa'}
+</button>
+
+{/* Resultado da taxa calculada */}
+{deliveryCheckout && (
+  <div className="mt-2 p-2.5 bg-gray-800/60 rounded-lg text-xs text-gray-200">
+    <p className="font-semibold">Entrega calculada</p>
+    {deliveryCheckout.distanceKm != null && (
+      <p className="text-gray-300">Distância: {deliveryCheckout.distanceKm} km</p>
+    )}
+    <p className="text-gray-300">
+      Taxa: R$ {deliveryCheckout.fee.toFixed(2).replace('.', ',')}
+    </p>
+    <p className="text-gray-300">Tempo: {deliveryCheckout.estimatedMinutes} min</p>
+  </div>
+)}
                         <span>Pagar na entrega</span>
                       </label>
                     )}
