@@ -329,7 +329,48 @@ const fetchDelivery = async (cepDigits: string, target: 'preview' | 'checkout') 
   await fetchDelivery(cepDigits, 'preview');
   toast.success('Entrega calculada!');
 };
-  
+
+  const calculateDeliveryManual = async () => {
+  if (!slug) {
+    toast.error('Menu inválido (slug não encontrado).');
+    return;
+  }
+
+  const cepDigits = onlyDigits(deliveryCalcCep).slice(0, 8);
+  if (cepDigits.length !== 8) {
+    toast.error('Informe um CEP válido (8 dígitos)');
+    return;
+  }
+
+  setDeliveryCalcLoading(true);
+  try {
+    const res = await api.get(`/menu/${slug}/calculate-delivery`, {
+      params: { cep: cepDigits },
+    });
+
+    const fee = Number(res.data?.fee);
+    const estimatedMinutes = Number(res.data?.estimatedMinutes);
+
+    if (!Number.isFinite(fee) || !Number.isFinite(estimatedMinutes)) {
+      throw new Error('Resposta inválida do servidor');
+    }
+
+    setDeliveryCalcResult({
+      fee,
+      estimatedMinutes,
+      cep: String(res.data?.cep || formatCep(cepDigits)),
+      distanceKm: res.data?.distanceKm != null ? Number(res.data.distanceKm) : undefined,
+    });
+
+    toast.success('Entrega calculada!');
+  } catch (err: any) {
+    toast.error(err?.response?.data?.error || err?.message || 'Erro ao calcular entrega');
+    setDeliveryCalcResult(null);
+  } finally {
+    setDeliveryCalcLoading(false);
+  }
+};
+
   const loadMenu = async () => {
     try {
       const response = await api.get(`/menu/${slug}`);
