@@ -340,7 +340,7 @@ const fetchDelivery = async (cepDigits: string, target: 'preview' | 'checkout') 
   try {
     const res = await api.get(`/menu/${slug}/calculate-delivery`, {
       params: { cep: cepDigits },
-    });
+    };
 
     const fee = Number(res.data?.fee);
     const estimatedMinutes = Number(res.data?.estimatedMinutes);
