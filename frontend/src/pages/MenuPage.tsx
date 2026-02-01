@@ -991,6 +991,11 @@ export default function MenuPage() {
                         <span>R$ {deliveryFeeDisplay.toFixed(2).replace('.', ',')}</span>
                       </div>
                     )}
+                    {orderType === 'DELIVERY' && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        debug: result={deliveryCalcResult ? JSON.stringify(deliveryCalcResult) : 'null'} | fixo={Number(business.deliveryFee)}
+                      </p>
+                    )}
                     <div className="flex justify-between text-xl font-bold mt-4">
                       <span>Total</span>
                       <span className="text-primary-light">R$ {getTotal().toFixed(2).replace('.', ',')}</span>
