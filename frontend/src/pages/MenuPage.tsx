@@ -122,8 +122,10 @@ export default function MenuPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [customer, setCustomer] = useState<{ name: string; email: string; phone: string } | null>(null);
   const [deliveryCalcCep, setDeliveryCalcCep] = useState('');
-  const [deliveryCalcResult, setDeliveryCalcResult] = useState<{ fee: number; estimatedMinutes: number; cep: string; distanceKm?: number } | null>(null);
-  const [deliveryCalcLoading, setDeliveryCalcLoading] = useState(false);
+  const [deliveryPreview, setDeliveryPreview] = useState<{ fee: number; estimatedMinutes: number; cep: string; distanceKm?: number } | null>(null); // sidebar
+  const [deliveryCheckout, setDeliveryCheckout] = useState<{ fee: number; estimatedMinutes: number; cep: string; distanceKm?: number } | null>(null); // carrinho/checkout  
+  const [deliveryPreviewLoading, setDeliveryPreviewLoading] = useState(false);
+  const [deliveryCheckoutLoading, setDeliveryCheckoutLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoriesOpen, setCategoriesOpen] = useState(false);
 
@@ -147,6 +149,56 @@ export default function MenuPage() {
     if (digits.length <= 5) return digits;
     return `${digits.slice(0, 5)}-${digits.slice(5)}`;
   };
+
+  const [deliveryReqId, setDeliveryReqId] = useState(0);
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+
+const deliveryReqRef = useRef(0);
+
+const fetchDelivery = async (cepDigits: string, target: 'preview' | 'checkout') => {
+  if (!slug) return;
+
+  const reqId = ++deliveryReqRef.current;
+
+  if (target === 'preview') setDeliveryPreviewLoading(true);
+  else setDeliveryCheckoutLoading(true);
+
+  try {
+    const res = await api.get(`/menu/${slug}/calculate-delivery`, { params: { cep: cepDigits } });
+
+    // ignora resposta antiga
+    if (reqId !== deliveryReqRef.current) return;
+
+    const fee = Number(res.data?.fee);
+    const estimatedMinutes = Number(res.data?.estimatedMinutes);
+    const distanceKm = res.data?.distanceKm != null ? Number(res.data.distanceKm) : undefined;
+
+    if (!Number.isFinite(fee) || !Number.isFinite(estimatedMinutes)) {
+      throw new Error('Resposta inválida do servidor');
+    }
+
+    const payload = {
+      fee,
+      estimatedMinutes,
+      cep: String(res.data?.cep || formatCep(cepDigits)),
+      distanceKm: Number.isFinite(distanceKm as number) ? distanceKm : undefined,
+    };
+
+    if (target === 'preview') setDeliveryPreview(payload);
+    else setDeliveryCheckout(payload);
+  } catch {
+    if (reqId !== deliveryReqRef.current) return;
+    if (target === 'preview') setDeliveryPreview(null);
+    else setDeliveryCheckout(null);
+  } finally {
+    if (reqId !== deliveryReqRef.current) return;
+    if (target === 'preview') setDeliveryPreviewLoading(false);
+    else setDeliveryCheckoutLoading(false);
+  }
+};
+
+
 
   const buildDeliveryAddress = () => {
     const parts = [
@@ -271,12 +323,14 @@ export default function MenuPage() {
   };
 
   const calculateDelivery = async () => {
-  const cepDigits = onlyDigits(deliveryCalcCep);
-
+  const cepDigits = onlyDigits(deliveryCalcCep).slice(0, 8);
   if (cepDigits.length !== 8) {
     toast.error('Informe um CEP válido (8 dígitos)');
     return;
   }
+  await fetchDelivery(cepDigits, 'preview');
+  toast.success('Entrega calculada!');
+};
 
   if (!slug) {
     toast.error('Menu inválido (slug não encontrado).');
@@ -315,45 +369,22 @@ export default function MenuPage() {
   }
 };
 
-  const calculateDeliveryFromCustomerCep = async (cepRaw: string) => {
-  const cepDigits = onlyDigits(cepRaw).slice(0, 8);
+useEffect(() => {
+  if (orderType !== 'DELIVERY') return;
 
+  const cepDigits = onlyDigits(customerData.cep).slice(0, 8);
   if (cepDigits.length !== 8) {
-    setDeliveryCalcResult(null);
+    setDeliveryCheckout(null);
     return;
   }
 
-  if (!slug) return;
+  const t = setTimeout(() => {
+    fetchDelivery(cepDigits, 'checkout');
+  }, 600);
 
-  setDeliveryCalcLoading(true);
-
-  try {
-    const res = await api.get(`/menu/${slug}/calculate-delivery`, {
-      params: { cep: cepDigits },
-    });
-
-    const fee = Number(res.data?.fee);
-    const estimatedMinutes = Number(res.data?.estimatedMinutes);
-    const distanceKm = res.data?.distanceKm != null ? Number(res.data.distanceKm) : undefined;
-
-    if (!Number.isFinite(fee) || !Number.isFinite(estimatedMinutes)) {
-      throw new Error('Resposta inválida do servidor');
-    }
-
-    setDeliveryCalcResult({
-      fee,
-      estimatedMinutes,
-      cep: String(res.data?.cep || formatCep(cepDigits)),
-      distanceKm: Number.isFinite(distanceKm as number) ? distanceKm : undefined,
-    });
-  } catch (err) {
-    setDeliveryCalcResult(null);
-  } finally {
-    setDeliveryCalcLoading(false);
-  }
-};
-
-
+  return () => clearTimeout(t);
+}, [customerData.cep, orderType, slug]);
+  
   const loadMenu = async () => {
     try {
       const response = await api.get(`/menu/${slug}`);
@@ -395,14 +426,14 @@ export default function MenuPage() {
     const subtotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
     let deliveryFee = 0;
     if (orderType === 'DELIVERY' && business) {
-      deliveryFee = deliveryCalcResult != null ? deliveryCalcResult.fee : Number(business.deliveryFee);
+      deliveryFee = deliveryCheckout != null ? deliveryCheckout.fee : Number(business.deliveryFee);
     }
     return subtotal + deliveryFee;
   };
 
-  const deliveryFeeDisplay = orderType === 'DELIVERY' && business
-    ? (deliveryCalcResult != null ? deliveryCalcResult.fee : Number(business.deliveryFee))
-    : 0;
+    const deliveryFeeDisplay = orderType === 'DELIVERY' && business
+      ? (deliveryCheckout != null ? deliveryCheckout.fee : Number(business.deliveryFee))
+      : 0;
 
   const filteredCategories = useMemo(() => {
     if (!searchQuery.trim()) return categories;
@@ -456,9 +487,11 @@ export default function MenuPage() {
           addons: item.addons,
         })),
       };
-      if (orderType === 'DELIVERY' && deliveryCalcResult != null) {
-        orderPayload.deliveryFee = deliveryCalcResult.fee;
+      if (orderType === 'DELIVERY' && deliveryCheckout != null) {
+        orderPayload.deliveryFee = deliveryCheckout.fee;
       }
+
+      
       const orderResponse = await api.post('/orders', orderPayload, {
         params: { businessSlug: slug }
       });
@@ -793,7 +826,13 @@ export default function MenuPage() {
                           type="radio"
                           name="paymentMethod"
                           checked={paymentMethod === 'CASH_DELIVERY'}
-                          onChange={() => setPaymentMethod('CASH_DELIVERY')}
+                          onChange={(e) => {
+                            const digits = onlyDigits(e.target.value).slice(0, 8);
+                            setCustomerData({ ...customerData, cep: digits });
+                          
+                            if (digits.length === 8) lookupCep(digits);
+                          }}
+                          onBlur={() => lookupCep(customerData.cep)}
                           className="text-primary"
                         />
                         <span>Pagar na entrega</span>
