@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../lib/api';
 import { resolveImageUrl } from '../utils/resolveImage';
@@ -151,8 +151,6 @@ export default function MenuPage() {
   };
 
   const [deliveryReqId, setDeliveryReqId] = useState(0);
-
-import { useEffect, useMemo, useRef, useState } from 'react';
 
 const deliveryReqRef = useRef(0);
 
