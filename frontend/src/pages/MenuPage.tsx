@@ -213,6 +213,44 @@ export default function MenuPage() {
     if (orderType === 'DELIVERY' && paymentMethod === 'CASH_PICKUP') setPaymentMethod('ONLINE');
     if (orderType === 'PICKUP' && paymentMethod === 'CASH_DELIVERY') setPaymentMethod('ONLINE');
   }, [orderType]);
+  const calculateDeliveryFromCustomerCep = async (cepRaw: string) => {
+  const cepDigits = onlyDigits(cepRaw).slice(0, 8);
+
+  if (cepDigits.length !== 8) {
+    setDeliveryCalcResult(null);
+    return;
+  }
+
+  if (!slug) return;
+
+  setDeliveryCalcLoading(true);
+
+  try {
+    const res = await api.get(`/menu/${slug}/calculate-delivery`, {
+      params: { cep: cepDigits },
+    });
+
+    const fee = Number(res.data?.fee);
+    const estimatedMinutes = Number(res.data?.estimatedMinutes);
+    const distanceKm = res.data?.distanceKm != null ? Number(res.data.distanceKm) : undefined;
+
+    if (!Number.isFinite(fee) || !Number.isFinite(estimatedMinutes)) {
+      throw new Error('Resposta inválida do servidor');
+    }
+
+    setDeliveryCalcResult({
+      fee,
+      estimatedMinutes,
+      cep: String(res.data?.cep || formatCep(cepDigits)),
+      distanceKm: Number.isFinite(distanceKm as number) ? distanceKm : undefined,
+    });
+  } catch (err) {
+    setDeliveryCalcResult(null);
+  } finally {
+    setDeliveryCalcLoading(false);
+  }
+};
+
 
   const saveCustomerLogin = (name: string, email: string, phone: string) => {
     if (!slug) return;
@@ -271,6 +309,44 @@ export default function MenuPage() {
     toast.success('Entrega calculada!');
   } catch (err: any) {
     toast.error(err?.response?.data?.error || err?.message || 'Erro ao calcular entrega');
+    setDeliveryCalcResult(null);
+  } finally {
+    setDeliveryCalcLoading(false);
+  }
+};
+
+  const calculateDeliveryFromCustomerCep = async (cepRaw: string) => {
+  const cepDigits = onlyDigits(cepRaw).slice(0, 8);
+
+  if (cepDigits.length !== 8) {
+    setDeliveryCalcResult(null);
+    return;
+  }
+
+  if (!slug) return;
+
+  setDeliveryCalcLoading(true);
+
+  try {
+    const res = await api.get(`/menu/${slug}/calculate-delivery`, {
+      params: { cep: cepDigits },
+    });
+
+    const fee = Number(res.data?.fee);
+    const estimatedMinutes = Number(res.data?.estimatedMinutes);
+    const distanceKm = res.data?.distanceKm != null ? Number(res.data.distanceKm) : undefined;
+
+    if (!Number.isFinite(fee) || !Number.isFinite(estimatedMinutes)) {
+      throw new Error('Resposta inválida do servidor');
+    }
+
+    setDeliveryCalcResult({
+      fee,
+      estimatedMinutes,
+      cep: String(res.data?.cep || formatCep(cepDigits)),
+      distanceKm: Number.isFinite(distanceKm as number) ? distanceKm : undefined,
+    });
+  } catch (err) {
     setDeliveryCalcResult(null);
   } finally {
     setDeliveryCalcLoading(false);
